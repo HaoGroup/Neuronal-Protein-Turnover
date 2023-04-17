@@ -9,7 +9,7 @@ import numpy as np
 
 # df = pd.read_excel("/Users/medhaswetasen/Documents/GitHub/Neuronal-Protein-Turnover/Visualization/iMN_Peptide_Dataset.xlsx")
 # df = pd.read_excel("/Users/medhaswetasen/Documents/GitHub/Neuronal-Protein-Turnover/Visualization/data/iMN_Peptide_Dataset.xlsx")
-df = pd.read_excel("data/iMN_Peptide_Dataset.xlsx") # use relative paths, non-user-specific
+df = pd.read_excel("../data/iMN_Peptide_Dataset.xlsx") # use relative paths, non-user-specific
 # print(df.head().to_string())
 # %%
 df_1 = df[["PG.Genes","Peptide","iMN_Day0_Light_Relative_Abundance","iMN_Day1_Light_Relative_Abundance","iMN_Day2_Light_Relative_Abundance","iMN_Day4_Light_Relative_Abundance","iMN_Day6_Light_Relative_Abundance"]]
