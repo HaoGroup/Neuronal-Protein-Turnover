@@ -88,6 +88,8 @@ plt.show()
 
 # df[df["PG.Genes"]=='FBLL1'] ~~ HAS NA
 
+#%%
+# RUN THIS FIRST
 nonna = []
 for unique in unique_entries:
     df_3 = df_1[df_1["PG.Genes"] == unique]
@@ -114,7 +116,8 @@ for unique in nonna:
     plt.show()
 
 
-
+#%%
+# RUN THIS SECOND
 
 for unique in unique_entries:
     df_3 = df_1[df_1["PG.Genes"] == unique ]
@@ -134,6 +137,24 @@ for unique in unique_entries:
     plt.show()
 
 
+df_3 = df_1[df_1["PG.Genes"] == unique_entries[-1] ]
+df_4 = df_2[df_2["PG.Genes"] == unique_entries[-1] ]
+pep = df_3["Peptide"].unique()
+df_melted_4 = pd.melt(df_4, id_vars=['PG.Genes', 'Peptide'], value_vars=[0, 1, 2, 4, 6], var_name='Values', value_name='Heavy Medium')
+f_melted_sorted_4 = df_melted_4.sort_values(by=['PG.Genes', 'Peptide', 'Values'])
+# f_melted_sorted_4 = f_melted_sorted_4.set_index("Values")
+f_melted_sorted_4 = f_melted_sorted_4.reset_index()
+f_melted_sorted_4 = f_melted_sorted_4[["Heavy Medium"]]
+df_melted_3 = pd.melt(df_3, id_vars=['PG.Genes', 'Peptide'], value_vars=[0, 1, 2, 4, 6], var_name='Values', value_name='Light Medium')
+f_melted_sorted_3 = df_melted_3.sort_values(by=['PG.Genes', 'Peptide', 'Values'])
+# f_melted_sorted_3 = f_melted_sorted_3.set_index("Values")
+f_melted_sorted_3 = f_melted_sorted_3.reset_index()
+merged_df = pd.merge(f_melted_sorted_3, f_melted_sorted_4, left_index=True, right_index=True)
+merged_df = merged_df.sort_values(by=['Peptide', 'Values'])
+for p in pep:
+    df_33 = merged_df[merged_df["Peptide"] == p]
+    df_33.plot(x = 'Values', y=['Heavy Medium', 'Light Medium'])
+plt.show()
 
 
 
