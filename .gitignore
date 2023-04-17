@@ -11,7 +11,7 @@ settings.json
 # Spyder project settings
 .spyderproject
 # PyCharm project settings
-.idea/*
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
