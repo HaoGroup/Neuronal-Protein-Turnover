@@ -23,7 +23,7 @@ PgGenes = df_PGgenes_raw["PG.Genes"].unique() # ndarray (97,)
 # E Lo 20230418
 #
 
-def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlabel='Day', charttitle=''):
+def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlabel='Day', charttitle='', savepng=False, saveFolder = ''):
     """
     Args:
         df (pandas dataframe): the raw dataframe 
@@ -32,9 +32,15 @@ def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlab
         ylabel (str, optional): y-axis label
         xlabel (str, optional): x-axis label. Defaults to 'day'
         charttitle (str, optional): chart title. Defaults to the name of PG.Gene 
+        savepng (boolean, optioal): save chart to png
+        saveFolder (str, optional): (relative) path to save png
     return: plot object
     """
-    charttitle = 'For PG.Gene = '+gene if charttitle=='' else charttitle
+    # set the plot title
+    if charttitle=='':
+      charttitle = 'For PG.Gene = '+gene 
+      if maxNAcnt>0: charttitle += " ("+str(maxNAcnt)+ ' NAs allowed)'
+    
     df_1gene = df[ df["PG.Genes"] == gene ]  # there is still the PG.Gene column with single value gene
     # peptides = df_1gene["Peptide"].unique() # for geneEd = -1, peptides.shape = (19,)
     
@@ -60,16 +66,32 @@ def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlab
     ax.set_title(charttitle)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    if (savepng): 
+      #set path
+      import os
+      filepath = os.path.join(saveFolder,"relAbundance_gene-"+gene+"_"+str(maxNAcnt)+"NAs.png")
+      plt.savefig(filepath, facecolor=(.65, .75, .75))
     
     return ax
 
 geneId = -1
 # Example: plot series without any nan
+# abundancePlot1gene(df_PGgenes, PgGenes[geneId], savepng=True, saveFolder='media/plots')
 abundancePlot1gene(df_PGgenes, PgGenes[geneId])
 # Example: plot series at most one nan
 abundancePlot1gene(df_PGgenes, PgGenes[geneId], maxNAcnt = 1)
 
+#%%
+# Try looping through PG.Genes
+# Track all results with different maxNAcnt values in range(4) - 0,1,2,4,6 
+# there can be 0, 1, 2, or 3 values missing for day 1, 2, 4, and 6.
+# 
+# list comprehension inside list comprehension
+peptidePlots = [ [abundancePlot1gene(df_PGgenes,PgGenes[geneid], maxNAcnt=mxNA) for geneid in range(len(PgGenes))] for mxNA in range(4) ]
 
+# peptidePlots = [ [] ]*4 # empty list of length 4
+# for mxNA in range(4), geneid in range(len(PgGenes)):
+#   peptidePlots[mxNA].append(abundancePlot1gene(df_PGgenes,PgGenes[geneid], maxNAcnt=mxNA))
 
 
 
