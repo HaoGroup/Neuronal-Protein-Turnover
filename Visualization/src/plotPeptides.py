@@ -23,15 +23,18 @@ PgGenes = df_PGgenes_raw["PG.Genes"].unique() # ndarray (97,)
 # E Lo 20230418
 #
 
-def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance"):
+def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlabel='Day', charttitle=''):
     """
     Args:
         df (pandas dataframe): the raw dataframe 
         gene (str): Which gene is being processed
         maxNAcnt (int, optional): maximum missing/NA data points allowed to include in plot. Defaults to 0.
         ylabel (str, optional): y-axis label
+        xlabel (str, optional): x-axis label. Defaults to 'day'
+        charttitle (str, optional): chart title. Defaults to the name of PG.Gene 
     return: plot object
     """
+    charttitle = 'For PG.Gene = '+gene if charttitle=='' else charttitle
     df_1gene = df[ df["PG.Genes"] == gene ]  # there is still the PG.Gene column with single value gene
     # peptides = df_1gene["Peptide"].unique() # for geneEd = -1, peptides.shape = (19,)
     
@@ -54,6 +57,8 @@ def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance"):
 
     # Plot all the peptides for this gene as line plot
     ax = df_1gene_pivot.plot()
+    ax.set_title(charttitle)
+    ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     
     return ax
