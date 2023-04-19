@@ -90,10 +90,6 @@ abundancePlot1gene(df_PGgenes, PgGenes[geneId], maxNAcnt = 1)
 savepngnow = False
 peptidePlots = [ [abundancePlot1gene(df_PGgenes,PgGenes[geneid], maxNAcnt=mxNA, savepng=savepngnow, saveFolder='media/plots') for geneid in range(len(PgGenes))] for mxNA in range(4) ]
 
-# peptidePlots = [ [] ]*4 # empty list of length 4
-# for mxNA in range(4), geneid in range(len(PgGenes)):
-#   peptidePlots[mxNA].append(abundancePlot1gene(df_PGgenes,PgGenes[geneid], maxNAcnt=mxNA))
-
 
 
 # %%
