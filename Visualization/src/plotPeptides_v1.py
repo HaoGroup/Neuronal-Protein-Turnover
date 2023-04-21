@@ -1,3 +1,4 @@
+# v1, group by PG.Gene
 # %%
 
 import matplotlib.pyplot as plt
@@ -7,14 +8,14 @@ import numpy as np
 
 # %%
 
-df_PG_raw = pd.read_excel("../data/iMN_Peptide_Dataset.xlsx") # use relative paths, non-user-specific
+df_PGgenes_raw = pd.read_excel("../data/iMN_Peptide_Dataset.xlsx") # use relative paths, non-user-specific
 # print(df.head().to_string())
-df_PG = df_PG_raw[["PG.ProteinGroups","PG.Genes","Peptide","iMN_Day0_Light_Relative_Abundance","iMN_Day1_Light_Relative_Abundance","iMN_Day2_Light_Relative_Abundance","iMN_Day4_Light_Relative_Abundance","iMN_Day6_Light_Relative_Abundance"]]
+df_PGgenes = df_PGgenes_raw[["PG.Genes","Peptide","iMN_Day0_Light_Relative_Abundance","iMN_Day1_Light_Relative_Abundance","iMN_Day2_Light_Relative_Abundance","iMN_Day4_Light_Relative_Abundance","iMN_Day6_Light_Relative_Abundance"]]
 # rename columns 
-df_PG.columns = ["PG.ProteinGroups","PG.Genes","Peptide",0,1,2,4,6]
-# print(df_PG.head().to_string())
+df_PGgenes.columns = ["PG.Genes","Peptide",0,1,2,4,6]
+# print(df_PGgenes.head().to_string())
 
-PgList = df_PG_raw["PG.ProteinGroups"].unique() # ndarray (97,)
+PgGenes = df_PGgenes_raw["PG.Genes"].unique() # ndarray (97,)
 
 
 #%%
@@ -75,10 +76,10 @@ def abundancePlot1gene(df, gene, maxNAcnt = 0, ylabel="Relative Abundance", xlab
 
 geneId = -1
 # Example: plot series without any nan
-# abundancePlot1gene(df_PG, PgList[geneId], savepng=True, saveFolder='media/plots')
-abundancePlot1gene(df_PG, PgList[geneId])
+# abundancePlot1gene(df_PGgenes, PgGenes[geneId], savepng=True, saveFolder='media/plots')
+abundancePlot1gene(df_PGgenes, PgGenes[geneId])
 # Example: plot series at most one nan
-abundancePlot1gene(df_PG, PgList[geneId], maxNAcnt = 1)
+abundancePlot1gene(df_PGgenes, PgGenes[geneId], maxNAcnt = 1)
 
 #%%
 # Try looping through PG.Genes
@@ -87,7 +88,7 @@ abundancePlot1gene(df_PG, PgList[geneId], maxNAcnt = 1)
 # 
 # list comprehension inside list comprehension
 savepngnow = False
-peptidePlots = [ [abundancePlot1gene(df_PG,PgList[geneid], maxNAcnt=mxNA, savepng=savepngnow, saveFolder='media/plots') for geneid in range(len(PgList))] for mxNA in range(4) ]
+peptidePlots = [ [abundancePlot1gene(df_PGgenes,PgGenes[geneid], maxNAcnt=mxNA, savepng=savepngnow, saveFolder='media/plots') for geneid in range(len(PgGenes))] for mxNA in range(4) ]
 
 
 
