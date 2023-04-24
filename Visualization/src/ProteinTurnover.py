@@ -24,6 +24,7 @@ class ProteinTurnover:
         x_unit (str, optional): the unit for x-axis. Defaults to "day".
     """
     self.__yValueName = 'Rel Abundance'
+    self.__xAxisName = 'Day'
     self.__compoIndex = ['PG.ProteinGroups', 'Peptide', 'wtype'] # basic composite index used in DFs
     self.df_PgRaw = None # initialize, current structure has columns: ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 'iMN_Day{x}_{Light/Heavy}_Relative_Abundance', 'k_results', 'Protein_Turnover_from_k', 'residuals']
     self.df_Pg = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 'wtype', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
@@ -35,7 +36,7 @@ class ProteinTurnover:
     self.__setPgPivot()
     return
   
-  def __ingestData(self, filepath, x_values = [], x_unit = "Day"):
+  def __ingestData(self, filepath, x_values = None, x_unit = None):
     """
     Args:
         filepath (_type_): the source file location. Use os to ensure right format
@@ -98,7 +99,7 @@ class ProteinTurnover:
     set up pivot table from df_PG table for analysis and plots
     Returns: None
     """
-    xAxisName = 'Day'
+    xAxisName = self.__xAxisName
     # select only rel_Abundance columns
     df = self.df_Pg.loc[:, self.df_Pg.columns.str.contains('^\d$')] # only columns with single digit as colnames
     df = df.stack(dropna = False) # melt method does not keep the original index keys. df is now a pd series
@@ -106,6 +107,7 @@ class ProteinTurnover:
     df.name = self.__yValueName # set name of the series (column)
     df = pd.DataFrame(df).reset_index() # from pd series to dataframe, and reset index to use pivot functions
     # df = pd.melt()
+    df[xAxisName] = df[xAxisName].astype(int) # need these x-values be taken as numeric
     self.df_PgPivot = df.pivot(index=xAxisName, columns = self.__compoIndex, values = self.__yValueName)
     return
   
@@ -156,8 +158,8 @@ class ProteinTurnover:
     ax = df.plot()
     handles, labels = ax.get_legend_handles_labels()  
     lgd = ax.legend(handles, labels, loc='upper left', bbox_to_anchor=(0,-0.15))
-    natext = "("+str(maxNAcnt)+ '-NAs/series)' if maxNAcnt>1 else '(1-NA/series)' if maxNAcnt>0 else ' '
-    axtext = ax.text(-0.15, 1.1, natext, transform=ax.transAxes)
+    natext = "("+str(maxNAcnt)+ '-NAs/series included)' if maxNAcnt>1 else '(1-NA/series included)' if maxNAcnt>0 else ' '
+    axtext = ax.text(-0.13, -0.13, natext, transform=ax.transAxes)
     # ax.grid('on')
     ax.set_title(charttitle)
     ax.set_xlabel(xlabel)
