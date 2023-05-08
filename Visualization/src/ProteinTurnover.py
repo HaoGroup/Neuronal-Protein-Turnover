@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+from sklearn.linear_model import LinearRegression
 import plotly.graph_objects as go
 import plotly.express as px
 # import seaborn as sns
@@ -95,7 +96,7 @@ class ProteinTurnover:
     df = pd.DataFrame(df).reset_index() # from pd series to dataframe, and reset index to use pivot functions
     # df = pd.melt()
     df[xAxisName] = df[xAxisName].astype(int) # need these x-values be taken as numeric
-    self.df_PgPivot = df.pivot(index=xAxisName, columns = self.__compoIndex, values = self.__yAxisName)
+    self.df_PgPivot = 100 * df.pivot(index=xAxisName, columns = self.__compoIndex, values = self.__yAxisName)
     return
   
   def peptidesFromPrtnGrp(self, prtnGrp): 
@@ -302,8 +303,6 @@ class ProteinTurnover:
     return: plotly plot object
     """    
     labels = self.__setArgLabels(labels=labels)
-    # lines = self.__setArgLines(lines=lines)
-    # markers = self.__setArgMarkers(markers=markers)
 
     peptides = self.__peptidesFromPivottable(df)
 
@@ -317,10 +316,7 @@ class ProteinTurnover:
     
     if len(fig.data) < 1 : return #  if nothing showing, skip
     
-    fig.update_layout(
-      title=labels['title'],
-      xaxis_title=labels['x'],
-      yaxis_title=labels['y'],
+    fig.update_layout( title=labels['title'], xaxis_title=labels['x'], yaxis_title=labels['y'],
       legend_title="Peptide",
       font=dict(
           # family="Courier New, monospace",
@@ -332,6 +328,39 @@ class ProteinTurnover:
     
     return fig
   
+  def __expFitLightSeries(self, df):
+    """
+    Create an exponential fit from the light series
+    Args:
+        df (pd DataFrame): df with x and y values to be fitted
+    return: dict(b, t12, r2)
+    """
+    import numpy as np
+    from sklearn.linear_model import LinearRegression
+    # from scipy.optimize import curve_fit
+    
+    # df is pivot table with only 2 columns of averages. In case there is any NaN
+    df0 = df.dropna()
+    
+    res = dict() # with b, t12, r2 values
+    
+    # Try scipy curve_fit:
+    # from scipy.optimize import curve_fit
+    # import numpy as np
+    # x = df0['time']
+    # y = np.log(0.01*df0['light'])
+    # popt, pcov = curve_fit(lambda t, b: np.exp(-b * t), x, y) # popt-optimized parameters
+    
+    x=df0[['time']]
+    y=np.log(0.01*df0['light'])
+    lm = LinearRegression(fit_intercept=False)
+    lm.fit(x, y)
+    res['b'] = 0 - lm.coef_[0]
+    res['t12'] = np.log(2)/res['b']
+    res['r2'] = lm.score(x, y)
+    
+    return res
+  
   def abundancePlotProteinLevel(self, df, labels=dict() ):
     """
     Args:
@@ -339,38 +368,51 @@ class ProteinTurnover:
         trendlines (dict, optional): show, solid (bool), color (str), width (float) 
         lines (dict, optional): show, solid (bool), color (str), width (float) 
         markers (dict, optional): show (bool), symbol (str), size (float) 
-    return: plotly plot object
+    return: plotly plot objecta
     """
+    import numpy as np
     labels = self.__setArgLabels(labels=labels)
     # lines = self.__setArgLines(lines=lines)
     # trendlines = self.__setArgTrendlines(trendlines=trendlines)
     # markers = self.__setArgMarkers(markers=markers)
     #
-    # df.columns = df.columns.droplevel(0) # further drop peptide level header    
     df.columns = df.columns.reorder_levels(['wtype','Peptide'])
+    # types=tuple(df.columns.levels[0]) # essentially ('heavy','light')
+    types=('heavy','light')
     df_avg = pd.DataFrame()
-    df_avg['light'] = df['light'].mean(axis = 1) # na will be ignored !! Re-think strategy
-    df_avg['heavy'] = df['heavy'].mean(axis = 1) # na will be ignored !! Re-think strategy
+    for t in types: df_avg[t] = df[t].mean(axis = 1) # na will be ignored !! Re-think strategy
     df_avg.reset_index(inplace=True) # reset index to have 'time' column, for plotting
     
+    # Obtain exponential fit params for the light series
+    expfitres = self.__expFitLightSeries(df_avg) # {b, t12, r2}
+    b = expfitres['b']
+    t12 = expfitres['t12']
+    r2 = expfitres['r2']
+    # determine x-range. If t12 is too long, try to do something...
+    xrange = round( min( max(6, 1.8*t12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
+    xsamples = np.linspace(start = 0, stop = xrange, num = 300)
+    ysamples = dict()
+    ysamples['light'] = 100*np.exp(-b*xsamples)
+    ysamples['heavy'] = 100 - ysamples['light']
+    # decayf =
     
-    # lines['color'] = '#00FE35'; lines['width']=3;  # trendline use '#00FE35', which is Light24[1] color, lime green
-    # markers['symbol'] = 'hexagon'; markers['size'] = 12; 
-    
+    colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
+    symbols = dict(heavy='hourglass', light='cross') # try hexagon
+
     fig = go.Figure()
-    # fig.add_trace( go.Scatter( x=df_avg[self.__xAxisName], y=df_avg['light'], mode='markers', name='light', showlegend=False, marker_color='rgba(199,10,165,.9)', marker_size=10 )) 
-    fig.add_trace( go.Scatter( x=df_avg[self.__xAxisName], y=df_avg['light'], mode='markers', name='light', showlegend=False, marker=dict( size=10, color='rgba(199,10,165,.9)', symbol='hourglass' ) )) 
-    fig.add_trace( go.Scatter( x=df_avg[self.__xAxisName], y=df_avg['heavy'], mode='markers', name='heavy', showlegend=False, marker_color='rgba(56,233,99,.9)', marker_size=10, marker_symbol = 'cross' )) 
-    
-    
-    
-    labels['title'] = "Protein Level chart"
+    for t in types:
+      markeropt = dict(color=colors[t], symbol=symbols[t], size=10)
+      specs = dict(mode='markers', name=t, showlegend=False, connectgaps=False)
+      fig = self.__add1goTrace(fig, x=df_avg[self.__xAxisName], y=df_avg[t], specs=specs, markeropt=markeropt )
+      specs = dict(mode='lines', name=t, showlegend=False, connectgaps=True)
+      fig = self.__add1goTrace(fig, x=xsamples, y=ysamples[t], specs=specs, markeropt=markeropt )
+        
     if len(fig.data) < 1 : return #  if nothing showing, skip
     
-    fig.update_layout(
-      title=labels['title'],
-      xaxis_title=labels['x'],
-      yaxis_title=labels['y'],
+    # show half life if within range
+    if t12 < xrange: fig.add_vline(x=t12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12.__round__(2)), annotation_position='bottom right' )
+    
+    fig.update_layout( title=labels['title'], xaxis_title=labels['x'], yaxis_title=labels['y'],
       # legend_title="_",
       font=dict(
           # family="Courier New, monospace",
@@ -419,7 +461,6 @@ class ProteinTurnover:
     """
     labels = self.__setArgLabels(labels=labels)
     saveFigs = self.__setArgSaveFigs(saveFigs=saveFigs)
-    labels['title'] = labels['title'] if labels['title'] else self.__set1PgChartTitle(prtnGrp) # Title for such plots
     
     df = self.df_PgPivot[[prtnGrp]] # filter only one prtnGrp, with both light and heavy data, can have multiple peptides, 
     df.columns = df.columns.droplevel(0) # remove column index ProteinGroup
@@ -428,9 +469,11 @@ class ProteinTurnover:
     df = df.drop(columns=[col for col in df if df[col].isna().sum() > self.__maxNAcnt ]) # __maxNAcnt is set globally
     if df.shape[1] < 1: return None # nothing to plot
     
+    labels['title'] = labels['title'] if labels['title'] else self.__set1PgChartTitle(prtnGrp) # Title for such plots
     _ = self.abundancePlotAllPeptides(df, wtype='both', labels=labels)
     
     # Now plot protein level average with trendline
+    labels['title'] = "Average for Protein: "+prtnGrp
     _ = self.abundancePlotProteinLevel(df, labels=labels)
 
     return 
