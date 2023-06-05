@@ -4,6 +4,10 @@ Icon
 Icon?
 .ipynb_checkpoints
 
+# project specific
+pngs/
+htmls/
+
 # for VS code configs
 *.code-workspace
 .vscode/*

@@ -4,6 +4,7 @@ import pandas as pd
 import os
 from sklearn.linear_model import LinearRegression
 import plotly.graph_objects as go
+# To export static images from go, need pip install -U kaleido
 import plotly.express as px
 # import seaborn as sns
 # import numpy as np
@@ -33,7 +34,8 @@ class ProteinTurnover:
     self.__yUnit = 'L%'
     self.__xAxisName = 'time'
     self.__xUnit = 'day'
-    self.__compoIndex = ['PG.ProteinGroups', 'Peptide', 'wtype'] # basic composite index used in DFs
+    # self.__compoIndex = ['PG.ProteinGroups', 'Peptide', 'wtype'] # basic composite index used in DFs
+    self.__compoIndex = ['Protein', 'Peptide', 'wtype'] # basic composite index used in DFs
     self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be plot
     self.df_PgRaw = None # initialize, current structure has columns: ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 'iMN_Day{x}_{Light/Heavy}_Relative_Abundance', 'k_results', 'Protein_Turnover_from_k', 'residuals']
     self.df_Pg = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 'wtype', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
@@ -66,10 +68,14 @@ class ProteinTurnover:
     # keep only light/heavy data for each df
     df_light.drop(list(df_light.filter(regex = 'Heavy_Relative_Abundance')), axis = 1, inplace = True)
     df_heavy.drop(list(df_heavy.filter(regex = 'Light_Relative_Abundance')), axis = 1, inplace = True)
+    # df_light.drop(list(df_light.filter(regex = 'Relative Heavy Intensity')), axis = 1, inplace = True) # Not used after renamed new xlxs column names
+    # df_heavy.drop(list(df_heavy.filter(regex = 'Relative Light Intensity')), axis = 1, inplace = True) # Not used after renamed new xlxs column names
     # rename columns as 0, 1, 2, 4, 6 for days
     import re
     df_light.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)
     df_heavy.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)
+    # df_light.rename(columns=lambda x: re.sub(r'Relative.*Intensity.Day.(\d)$', r'\1', x), inplace = True) # Not used after renamed new xlxs column names
+    # df_heavy.rename(columns=lambda x: re.sub(r'Relative.*Intensity.Day.(\d)$', r'\1', x), inplace = True) # Not used after renamed new xlxs column names
     # set composite index 
     df_light.set_index(self.__compoIndex, inplace=True)  
     df_heavy.set_index(self.__compoIndex, inplace=True)  
@@ -96,7 +102,7 @@ class ProteinTurnover:
     df = pd.DataFrame(df).reset_index() # from pd series to dataframe, and reset index to use pivot functions
     # df = pd.melt()
     df[xAxisName] = df[xAxisName].astype(int) # need these x-values be taken as numeric
-    self.df_PgPivot = 100 * df.pivot(index=xAxisName, columns = self.__compoIndex, values = self.__yAxisName)
+    self.df_PgPivot = 100 * df.pivot_table(index=xAxisName, columns = self.__compoIndex, values = self.__yAxisName)
     return
   
   def peptidesFromPrtnGrp(self, prtnGrp): 
@@ -133,10 +139,13 @@ class ProteinTurnover:
     Returns: None
     """
     # set PgList
-    self.PgList = self.df_PgRaw["PG.ProteinGroups"].unique()
+    # self.PgList = self.df_PgRaw["PG.ProteinGroups"].unique()
+    self.PgList = self.df_PgRaw["Protein"].unique()
     # set df_PgGeneDescLookup
-    compoIndex = ['PG.ProteinGroups', 'PG.Genes']
-    selectedCols = compoIndex + ['PG.ProteinDescriptions']
+    # compoIndex = ['PG.ProteinGroups', 'PG.Genes']
+    compoIndex = ['Protein', 'Gene.x']
+    # selectedCols = compoIndex + ['PG.ProteinDescriptions']
+    selectedCols = compoIndex + ['Protein.Description']
     df = self.df_PgRaw[selectedCols]
     df.set_index(compoIndex, inplace=True)    
     self.df_PgGeneDescLookup = df.drop_duplicates()
@@ -165,8 +174,8 @@ class ProteinTurnover:
         dict: { x, y, title }
     """
     res = labels.copy()
-    res['x'] = res['x'] if (res.__contains__('x') and res['x']) else self.__xAxisName + ' ('+ self.__xUnit + ')'
-    res['y'] = res['y'] if (res.__contains__('y') and res['y']) else self.__yAxisName + ' ('+ self.__yUnit + ')'
+    res['x'] = res['x'] if (res.__contains__('x') and res['x']) else self.__xAxisName.capitalize() + ' ('+ self.__xUnit + ')'
+    res['y'] = res['y'] if (res.__contains__('y') and res['y']) else self.__yAxisName.capitalize() + ' ('+ self.__yUnit + ')'
     res['title'] = res['title'] if (res.__contains__('title') and res['title']) else None
     return res
   
@@ -194,9 +203,9 @@ class ProteinTurnover:
     """
     res = markeropt.copy()
     # https://plotly.com/python/marker-style/ # hourglass, x-thin, ...
-    res['symbol'] = res['symbol'] if (res.__contains__('symbol') and res['symbol']) else 'hourglass'
+    res['symbol'] = res['symbol'] if (res.__contains__('symbol') and res['symbol']) else 'circle'
     res['color'] = res['color'] if (res.__contains__('color') and res['color']) else '#000000'
-    res['size'] = res['size'] if (res.__contains__('size') and res['size']) else 10
+    res['size'] = res['size'] if (res.__contains__('size') and res['size']) else 4
     return res
     
   # def __setArgTrendlines(self, trendlines=dict(show=False, solid=True, color=None, width=None) ):
@@ -292,7 +301,7 @@ class ProteinTurnover:
     
     return fig
   
-  def abundancePlotAllPeptides(self, df, wtype='both', labels=dict() ):
+  def abundancePlotAllPeptides(self, df, wtype='both', labels=dict(), saveFigOpts=dict() ):
     """
     Args:
         df (Dataframe): Pandas pivot table df
@@ -303,6 +312,7 @@ class ProteinTurnover:
     return: plotly plot object
     """    
     labels = self.__setArgLabels(labels=labels)
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
 
     peptides = self.__peptidesFromPivottable(df)
 
@@ -324,7 +334,22 @@ class ProteinTurnover:
           color="Black" # "RebeccaPurple"
       )
     )
-    fig.show()
+    if saveFigOpts['savePng']:
+      # import os
+      folder = saveFigOpts['folder']
+      # save static png from plotly GO, requires plotly GO needs kaleido installed
+      if not os.path.exists(folder): os.mkdir(folder)
+      filename = "RelAbundance_prtnGrp-"+ labels['title'][6:].replace(";","-") +"-peptides" # title starts with "Gene: "
+      filepath = os.path.join(folder,filename+'.png')
+      fig.write_image( filepath )
+      
+      # save plotly GO as interactive graph in html
+      folder = os.path.join( saveFigOpts['folder'], 'htmls' )
+      if not os.path.exists(folder): os.mkdir(folder)
+      filepath = os.path.join(folder, filename+".html")
+      fig.write_html( filepath )
+    else: 
+      fig.show()
     
     return fig
   
@@ -361,7 +386,7 @@ class ProteinTurnover:
     
     return res
   
-  def abundancePlotProteinLevel(self, df, labels=dict() ):
+  def abundancePlotProteinLevel(self, df, labels=dict(), saveFigOpts = dict() ):
     """
     Args:
         df (Dataframe): Pandas pivot table df
@@ -372,6 +397,7 @@ class ProteinTurnover:
     """
     import numpy as np
     labels = self.__setArgLabels(labels=labels)
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     # lines = self.__setArgLines(lines=lines)
     # trendlines = self.__setArgTrendlines(trendlines=trendlines)
     # markers = self.__setArgMarkers(markers=markers)
@@ -397,14 +423,15 @@ class ProteinTurnover:
     # decayf =
     
     colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
-    symbols = dict(heavy='hourglass', light='cross') # try hexagon
+    symbols = dict(heavy='x', light='cross') # try hexagon
 
     fig = go.Figure()
     for t in types:
-      markeropt = dict(color=colors[t], symbol=symbols[t], size=10)
-      specs = dict(mode='markers', name=t, showlegend=False, connectgaps=False)
+      markeropt = dict(color=colors[t], symbol=symbols[t], size=7)
+      specs = dict(mode='markers', name=t.capitalize(), showlegend=False, connectgaps=False)
       fig = self.__add1goTrace(fig, x=df_avg[self.__xAxisName], y=df_avg[t], specs=specs, markeropt=markeropt )
-      specs = dict(mode='lines', name=t, showlegend=False, connectgaps=True)
+      legendname = t.capitalize()+' (synthesis)' if t=='heavy' else t.capitalize()+' (degradation)' if t=='light' else '-'
+      specs = dict(mode='lines', name=legendname, showlegend=True, connectgaps=True)
       fig = self.__add1goTrace(fig, x=xsamples, y=ysamples[t], specs=specs, markeropt=markeropt )
         
     if len(fig.data) < 1 : return #  if nothing showing, skip
@@ -420,7 +447,22 @@ class ProteinTurnover:
           color="Black" # "RebeccaPurple"
       )
     )
-    fig.show()
+    if saveFigOpts['savePng']:
+      # import os
+      folder = saveFigOpts['folder']
+      # save static png from plotly GO, requires plotly GO needs kaleido installed
+      if not os.path.exists(folder): os.mkdir(folder)
+      filename = "RelAbundance_prtnGrp-"+ labels['title'][21:].replace(";","-") # title starts with "Average for Protein: "
+      filepath = os.path.join(folder, filename+".png")
+      fig.write_image( filepath )
+      
+      # save plotly GO as interactive graph in html
+      folder = os.path.join( saveFigOpts['folder'], 'htmls' )
+      if not os.path.exists(folder): os.mkdir(folder)
+      filepath = os.path.join(folder, filename +".html")
+      fig.write_html( filepath )
+    else: 
+      fig.show()
     
     return fig
   
@@ -470,11 +512,11 @@ class ProteinTurnover:
     if df.shape[1] < 1: return None # nothing to plot
     
     labels['title'] = labels['title'] if labels['title'] else self.__set1PgChartTitle(prtnGrp) # Title for such plots
-    _ = self.abundancePlotAllPeptides(df, wtype='both', labels=labels)
+    _ = self.abundancePlotAllPeptides(df, wtype='both', labels=labels, saveFigOpts=saveFigOpts)
     
     # Now plot protein level average with trendline
     labels['title'] = "Average for Protein: "+prtnGrp
-    _ = self.abundancePlotProteinLevel(df, labels=labels)
+    _ = self.abundancePlotProteinLevel(df, labels=labels, saveFigOpts=saveFigOpts)
 
     return 
   
@@ -509,6 +551,7 @@ class ProteinTurnover:
     """
     # assumes labels and saveFigs are in the right forms.
     labels = self.__setArgLabels(labels=labels)
+<<<<<<< Updated upstream
     saveFigs = self.__setArgSaveFigs(saveFigs=saveFigs)
     # savePng = saveFigs['savePng']; saveFolder = saveFigs['folder']; 
     plotmax = 10
@@ -516,15 +559,27 @@ class ProteinTurnover:
       if plotmax == 0 : return
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigs=saveFigs)
       plotmax -= 1
+=======
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+    # savePng = saveFigOpts['savePng']; saveFolder = saveFigOpts['folder']; 
+    # plotmax = 10
+    for prtnGrp in self.PgList:
+      # if plotmax == 0 : return
+      self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+      # plotmax -= 1
+>>>>>>> Stashed changes
     return
 
 #%%
-file = os.path.join(os.getcwd(), "../data/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), "../data/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
+file = os.path.join(os.getcwd(), "../data/20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
+
 pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
 # pto.chkDfPgGeneLookupIndexUnique()
-# savenow = True
-savenow = False
+#%%
+savenow = True
+# savenow = False
 savePath = "../media/plots/"
 
 #%%
@@ -533,3 +588,14 @@ pto.abundancePlotPgAll( saveFigs = dict(savePng=savenow, folder=savePath) )
 
 
 # %%
+# Note, the new dataset (20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx) has these six duplicate combos
+# Protein	Peptide	  							
+# Q6ZTK2	GLQLEGELEELRQDR	
+# Q6ZSR9	QSIAGSVSITSLSSR	
+# Q6ZSR9  TQNNLESDYLAR	
+# Q6ZTK2	GLQLEGELEELRQDR	
+# Q6ZSR9	QSIAGSVSITSLSSR	
+# Q6ZSR9	TQNNLESDYLAR	
+# .
+
+#%%
