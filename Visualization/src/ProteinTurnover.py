@@ -9,6 +9,7 @@ import plotly.express as px
 # import seaborn as sns
 # import numpy as np
 import streamlit as st
+import ExpoDecayFit # in the same folder
 
 #%%
 # Create class ProteinTurnover to handle and organize the various parts of the study
@@ -26,7 +27,7 @@ class ProteinTurnover:
     """_summary_
 
     Args:
-        filepath (_type_): the source file location. Use os to ensure right format
+        filepath (str): the source file location. Use os to ensure right format
         x_values (list, optional): the time marks on x-axis. Defaults to [0,1,2,4,6].
         x_unit (str, optional): the unit for x-axis. Defaults to "day".
     """
@@ -81,7 +82,6 @@ class ProteinTurnover:
     df_heavy.set_index(self.__compoIndex, inplace=True)  
     # stack the two df together
     self.df_Pg = pd.concat([df_light, df_heavy])
-    # print(self.df_Pg.head())
     # self.chkDfPgIndexUnique()
     if not self.chkDfPgIndexUnique(): print("Protein Group in df_Pg not unique")
     
@@ -222,15 +222,15 @@ class ProteinTurnover:
   #   width = trendlines['width'] if (trendlines.__contains__('width') and trendlines['width']) else 4
   #   return dict(show=show, solid=solid, color=color, width=width)
   
-  def __setArgSaveFigs(self, saveFigs=dict(savePng=False, folder=None) ):
+  def __setArgSaveFigOpts(self, saveFigOpts=dict(savePng=False, folder=None) ):
     """
-    setting generic keyword argument saveFigs into savePng and folder
+    setting generic keyword argument saveFigOpts into savePng and folder
     Args:
-        saveFigs (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
+        saveFigOpts (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
     Returns:
         dict: { savePng, folder }
     """
-    res = saveFigs.copy()
+    res = saveFigOpts.copy()
     res['savePng'] = res['savePng'] if ( res.__contains__('savePng') and isinstance(res['savePng'], bool) ) else False
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
@@ -353,11 +353,11 @@ class ProteinTurnover:
     
     return fig
   
-  def __expFitLightSeries(self, df):
+  def __expFitAvgLightSeries(self, df):
     """
     Create an exponential fit from the light series
     Args:
-        df (pd DataFrame): df with x and y values to be fitted
+        df (pd DataFrame): df with x and y values to be fitted. y is expected to have 3 columns: time, light and heavy
     return: dict(b, t12, r2)
     """
     import numpy as np
@@ -410,7 +410,7 @@ class ProteinTurnover:
     df_avg.reset_index(inplace=True) # reset index to have 'time' column, for plotting
     
     # Obtain exponential fit params for the light series
-    expfitres = self.__expFitLightSeries(df_avg) # {b, t12, r2}
+    expfitres = self.__expFitAvgLightSeries(df_avg) # {b, t12, r2}
     b = expfitres['b']
     t12 = expfitres['t12']
     r2 = expfitres['r2']
@@ -466,43 +466,21 @@ class ProteinTurnover:
     
     return fig
   
-    # only keep rows with at most maxNAcnt nan values
-    df = df.drop(columns=[col for col in df if df[col].isna().sum() > self.__maxNAcnt ]) # __maxNAcnt is set globally
-    df.reset_index(inplace=True) # reset index to have 'time' column, for plotting
-    if df.shape[1] < 2: return fig # return fig # other than the time column, nothing to plot
-    # 
-    series = ('light') if wtype == 'light' else ('heavy') if wtype == 'heavy' else ('heavy','light')
-    for i, wtype in enumerate(series):
-      fig.add_trace(go.Scatter(
-      x=df[self.__xAxisName],
-      y=df.loc[:,wtype],
-      line=dict(color=lines['color'], width=lines['width']), 
-      marker_symbol = markers['symbol'], 
-      marker_size = markers['size'],
-      showlegend = False if i else True, # only show when i=0
-      name = peptide, # Style name/legend entry with html tags
-      connectgaps=True # override default to connect the gaps
-      ))
-    
-    # if trendlines['show']: fig = self.__addExpTrendline(fig, df, peptide, wtype=wtype, lines=lines, markers=markers, trendlines = trendlines) # df has one time column with light and/or heavy
-    
-    return fig
-
   def __addExpTrendline(self, fig, df, peptide, wtype='both', lines=dict(), markers=dict(), trendlines = dict()): # add trendline for the "light" peptide with exponential decay trendline
     # if light is present, fit it with exponential trendline
     if df.loc[:"light"] : pass
     return fig
   
-  def abundancePlot1Pg(self, prtnGrp, labels=dict(), saveFigs = dict() ):
+  def abundancePlot1Pg(self, prtnGrp, labels=dict(), saveFigOpts = dict() ):
     """
     Args:
         prtnGrp (str): the ProteinGrp being processed
         labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-        saveFigs (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
+        saveFigOpts (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
     return: None
     """
     labels = self.__setArgLabels(labels=labels)
-    saveFigs = self.__setArgSaveFigs(saveFigs=saveFigs)
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     
     df = self.df_PgPivot[[prtnGrp]] # filter only one prtnGrp, with both light and heavy data, can have multiple peptides, 
     df.columns = df.columns.droplevel(0) # remove column index ProteinGroup
@@ -542,24 +520,15 @@ class ProteinTurnover:
     
     return ax 
   
-  def abundancePlotPgAll(self, labels=dict(), saveFigs=dict()): 
+  def abundancePlotPgAll(self, labels=dict(), saveFigOpts=dict()): 
     """
     Args:
         labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-        saveFigs (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
+        saveFigOpts (dict, optional): savePng (binary) and folder (str). Defaults to dict(savePng=False, folder=None).
     return: None
     """
-    # assumes labels and saveFigs are in the right forms.
+    # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
-<<<<<<< Updated upstream
-    saveFigs = self.__setArgSaveFigs(saveFigs=saveFigs)
-    # savePng = saveFigs['savePng']; saveFolder = saveFigs['folder']; 
-    plotmax = 10
-    for prtnGrp in self.PgList:
-      if plotmax == 0 : return
-      self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigs=saveFigs)
-      plotmax -= 1
-=======
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     # savePng = saveFigOpts['savePng']; saveFolder = saveFigOpts['folder']; 
     # plotmax = 10
@@ -567,7 +536,6 @@ class ProteinTurnover:
       # if plotmax == 0 : return
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
       # plotmax -= 1
->>>>>>> Stashed changes
     return
 
 #%%
@@ -584,7 +552,7 @@ savePath = "../media/plots/"
 
 #%%
 # pto.abundancePlotPgAll(savepng=savenow, saveFolder=savePath)
-pto.abundancePlotPgAll( saveFigs = dict(savePng=savenow, folder=savePath) )
+pto.abundancePlotPgAll( saveFigOpts = dict(savePng=savenow, folder=savePath) )
 
 
 # %%
