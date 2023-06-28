@@ -17,7 +17,7 @@ class ExpoDecayFit:
   """
   Exponential Decay Fit 
   """
-  def __init__(self, df, xAxisName = 'Time', modelTypes=("LnLM1", "LnLM2", "CFit"), statsTypes=('b','t12','r2')) -> None:
+  def __init__(self, df, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
     """_summary_
 
     Args:
@@ -33,12 +33,12 @@ class ExpoDecayFit:
     
     self.__xAxisName = xAxisName # match with def in ProteinTurnover class
     # self.__modelPolyFit = None # numpy polyfit (polynomial fit, like linear regression) 
-    # self.__modelTypes = ("LnLM1", "LnLM2", "CFit", "PolyFit")
+    # self.__modelTypes = ('LnLM1', 'LnLM2', 'CFit', 'PolyFit')
     self.__modelTypes = modelTypes
-    # self.modelType = "LnLM1" # current selected // default
+    # self.modelType = 'LnLM1' # current selected // default
     self.__statsTypes = statsTypes
-    # self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name="stats"), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype]
-    self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name="stats"), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
+    # self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype]
+    self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
     
     self.startx = 0
     self.starty = 0
@@ -102,38 +102,41 @@ class ExpoDecayFit:
     logy=np.log(y)
     
     if (model=='LnLM1' or model=='all'):  # ScikitLearn LR
+      thismodel = 'LnLM1'
       mdl = LinearRegression(fit_intercept=False)
       mdl.fit(x, logy)
       res_b = -mdl.coef_[0]
       # save result statistics
-      self.modelsummary.loc['b','LnLM1'] = res_b
-      self.modelsummary.loc['t12','LnLM1'] = np.log(2)/res_b
-      self.modelsummary.loc['r2','LnLM1'] = mdl.score(x, logy)
+      self.modelsummary.loc[self.__statsTypes[0],thismodel] = res_b
+      self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
+      self.modelsummary.loc[self.__statsTypes[2],thismodel] = mdl.score(x, logy)
       # save model curve fit data points
-      self.sampleys['LnLM1'] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
       
     if (model=='LnLM2' or model=='all'):  # statsmodels LR
+      thismodel = 'LnLM2'
       # X = sm.add_constant(X)
       # model = sm.glm(y, X, family=log)
       mdl = sm.OLS(logy, x)
       results = mdl.fit()
       res_b = -results.params[0]
       # save result statistics
-      self.modelsummary.loc['b','LnLM2'] = res_b
-      self.modelsummary.loc['t12','LnLM2'] = np.log(2)/res_b
-      self.modelsummary.loc['r2','LnLM2'] = results.rsquared
+      self.modelsummary.loc[self.__statsTypes[0],thismodel] = res_b
+      self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
+      self.modelsummary.loc[self.__statsTypes[2],thismodel] = results.rsquared
       # save model curve fit data points
-      self.sampleys['LnLM1'] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
 
     if (model=='CFit' or model=='all'):  # Scipy CurveFit
+      thismodel = 'CFit'
       yvals = y.tolist() # or list(y) # y is a pd.core.series.Series
       xvals = x[self.__xAxisName].tolist() # change from pd.Dataframe to pd.Series to list
       popt, pcov = curve_fit(self.__expDecayFcn, xvals, yvals)
       # popt, pcov = curve_fit(lambda t, b: np.exp(-b * t), x, y) # popt-optimized parameters
       res_b = popt[0]
       # save result statistics
-      self.modelsummary.loc['b','CFit'] = res_b
-      self.modelsummary.loc['t12','CFit'] = np.log(2)/res_b
+      self.modelsummary.loc[self.__statsTypes[0],thismodel] = res_b
+      self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
       ## calculate r^2 ourselves
       residuals = y - self.__expDecayFcn(x, res_b)[self.__xAxisName] # x needs to be np array here, not just list, and results needs to be a series, not Dataframe since y is a series
       ss_res = np.sum(residuals**2)
@@ -141,9 +144,9 @@ class ExpoDecayFit:
       r_squared = 1 - (ss_res / ss_tot)
       # from sklearn.metrics import r2_score
       # r_squared = r2_score(y, self.__expDecayFcn(xvals, res_b))
-      self.modelsummary.loc['r2','CFit'] = r_squared
+      self.modelsummary.loc[self.__statsTypes[2],thismodel] = r_squared
       # save model curve fit data points
-      self.sampleys['CFit'] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
       
     # if (model=='PolyFit' or model=='all'):  # Numpy Polyfit
       # pass

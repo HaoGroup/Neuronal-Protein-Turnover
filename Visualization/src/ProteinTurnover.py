@@ -7,14 +7,10 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 import ExpoDecayFit as edf
-# from ExpoDecayFit import ExpoDecayFit # in the same folder
 # from scipy.stats import hmean # harmonic mean
-# from sklearn.linear_model import LinearRegression
 # import matplotlib.pyplot as plt
 # import seaborn as sns
-# import streamlit as st
 
-#%%
 # Create class ProteinTurnover to handle and organize the various parts of the study
 # v2 - switching to plotly from matplotlib
 # added column "time" instead of using the index to allow better/easier plots 
@@ -152,6 +148,7 @@ class ProteinTurnover:
     df = self.df_Peptides.reset_index()[selectedCols]
     df.set_index(compoIndexGene, inplace=True)
     df['chart'] = 0 # keep track of whether the protein has enough data points to make a plot. default to 0
+    # df.assign( chart = 0 ) # keep track of whether the protein has enough data points to make a plot. default to 0
     self.df_PgGeneDescSummary = df.drop_duplicates()
     if not self.chkDfPgGeneSummaryIndexUnique(): print("Protein Group - GeneId combo not unique")
     
@@ -283,16 +280,17 @@ class ProteinTurnover:
   #   width = trendlines['width'] if (trendlines.__contains__('width') and trendlines['width']) else 4
   #   return dict(show=show, solid=solid, color=color, width=width)
   
-  def __setArgSaveFigOpts(self, saveFigOpts=dict(savePlot=False, folder=None) ):
+  def __setArgSaveFigOpts(self, saveFigOpts=dict(savePlot=False, showPlot=True , folder=None) ):
     """
     setting generic keyword argument saveFigOpts into savePlot and folder
     Args:
-        saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
+        saveFigOpts (dict, optional): savePlot (binary) , showPlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
     Returns:
         dict: { savePlot, folder }
     """
     res = saveFigOpts.copy()
     res['savePlot'] = res['savePlot'] if ( res.__contains__('savePlot') and isinstance(res['savePlot'], bool) ) else False
+    res['showPlot'] = res['showPlot'] if ( res.__contains__('showPlot') and isinstance(res['showPlot'], bool) ) else True
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
@@ -333,50 +331,29 @@ class ProteinTurnover:
     lineopt = self.__setArgLineopt(lineopt=lineopt)
     markeropt = self.__setArgMarkeropt(markeropt=markeropt)
     markeropt['color'] = lineopt['color']
+    markeropt['size'] = 3
     # legendopt = self.__setArgLegendopt(legendopt=legendopt)
     #
     # df.columns = df.columns.droplevel(0) # further drop peptide level header 
-    # if ( isinstance(df.columns, pd.core.indexes.multi.MultiIndex) and len(df.columns.levels) > 1 ) : df.columns = df.columns.droplevel(0) # was using this function for some other cases. No longer need this check.
     df.reset_index(inplace=True) # reset index to have 'time' column, for plotting
-    # 
-    # series = ('light') if wtype == 'light' else ('heavy') if wtype == 'heavy' else ('light','heavy')
-    # line plots
-    # for i, wtype in enumerate(series):
-    #   showlegend = False if i>0 else True, # only show when i=0 # somehow this line is resulting showlegend as a tuple (True, )
-    #   showlegend = showlegend[0] if isinstance(showlegend,tuple) else showlegend if isinstance(showlegend,bool) else True
-    #   specs = dict(name=peptide, connectgaps=True, showlegend=showlegend, mode='lines+markers')
-      
-    #   fig = self.__add1goTrace(fig, x=df[self.__xAxisName], y=df.loc[:,wtype], specs=specs, lineopt=lineopt, markeropt=markeropt )
-    
-    # fitted plots
-    # types=('light','heavy')
-    # Plot scatter data points first
-    showlegend = False
-    specs = dict(name=peptide, connectgaps=False, showlegend=showlegend, mode='markers')
-    fig = self.__add1goTrace(fig, x=df[self.__xAxisName], y=df[peptide], specs=specs, lineopt=lineopt, markeropt=markeropt )
-    fig = self.__add1goTrace(fig, x=df[self.__xAxisName], y=100-df[peptide], specs=specs, lineopt=lineopt, markeropt=markeropt )
     
     # now with ExpoDecayFit module
     model = edf.ExpoDecayFit(df) # model.startx, starty, samplexs, sampleys
-    bs = model.modelsummary.loc['b',:]
-    t12s = model.modelsummary.loc['t12',:]
-    r2s = model.modelsummary.loc['r2',:]
+    bs, t12s, r2s = [ model.modelsummary.loc[t,:] for t in self.__statsTypes ]
     stats = dict( b=bs, t12=t12s, r2=r2s )
-    xsamples = model.samplexs
-    ysamples = dict()
-    ysamples['light'] = model.sampleys
-    ysamples['heavy'] = 100 - ysamples['light']    
-    modelChoice = 'CFit' # pick one to plot here. ("LnLM1", "LnLM2", "CFit")
 
-    xrange = round( min( max(6, 1.8*t12s[modelChoice]) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
+    modelChoice = 'CFit' # pick one to plot here. ("LnLM1", "LnLM2", "CFit")
+    ysamples = model.sampleys[modelChoice]
+    # xsamples = model.samplexs
+    # xrange = round( min( max(6, 1.8*t12s[modelChoice]) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
     
-    # heavy first, no legend
-    specs = dict(name=peptide, connectgaps=True, showlegend=showlegend, mode='lines')
-    fig = self.__add1goTrace(fig, x=xsamples, y=ysamples['heavy'][modelChoice], specs=specs, markeropt=markeropt )
-    # now light series, with legend
-    specs['showlegend'] = True 
-    specs['name'] += f' t = {stats["t12"][modelChoice].__round__(1)}d'
-    fig = self.__add1goTrace(fig, x=xsamples, y=ysamples['light'][modelChoice], specs=specs, markeropt=markeropt )
+    # combine both light and heavy series data points and model lines
+    xall = tuple(df[self.__xAxisName])*2 +tuple(model.samplexs)*2
+    yall = tuple(df[peptide])+tuple(100-df[peptide])+tuple(ysamples)+tuple(100-ysamples)
+
+    showlegend = True
+    specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, showlegend=showlegend, mode='markers')
+    fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
     
     # save results in df_Peptides
     for m in self.__modelTypes:
@@ -425,7 +402,6 @@ class ProteinTurnover:
     )
     
     proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
-
     
     if saveFigOpts['savePlot']:
       filename = "RelAbundance_Gene-"+ proteingenename +"-peptides" # title starts with "Gene: " or "Protein Group: "
@@ -475,10 +451,6 @@ class ProteinTurnover:
         markers (dict, optional): show (bool), symbol (str), size (float) 
     return: plotly plot objecta
     """
-    # import numpy as np
-    # import pandas as pd
-    # import ExpoDecayFit as edf
-    # from ExpoDecayFit import ExpoDecayFit 
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     legendopt = self.__setArgLegendopt(legendopt=legendopt)
@@ -486,55 +458,68 @@ class ProteinTurnover:
     # lines = self.__setArgLines(lines=lines)
     # trendlines = self.__setArgTrendlines(trendlines=trendlines)
     # markers = self.__setArgMarkers(markers=markers)
-    #
+    # 
+    # Prep the data
     if (len(df.columns) > 1) : # Pg_level needing to average all peptides
-    # if ( type(df.columns) == pd.core.indexes.multi.MultiIndex ): 
-      # df.columns = df.columns.reorder_levels(['wtype','Peptide'])
-      # df_avg = pd.DataFrame()
-      # for t in types: df_avg[t] = df[t].mean(axis = 1) # na will be ignored !! Re-think strategy
       df_avg = pd.DataFrame( { dataColName : df.mean(axis = 1) } ) # na will be ignored !! Re-think strategy
     else:
       dataColName = df.columns.values[-1] # only 1 peptide, use it as dataColName
       df_avg = df.copy() # peptide level data
-      
     df_avg.reset_index(inplace=True) # reset index to have 'time' column, for plotting
+    xs = df_avg[self.__xAxisName]
+    ys = dict( light=df_avg[dataColName] , heavy=100-df_avg[dataColName])
     
-    # now do these with ExpoDecayFit module
-    model = edf.ExpoDecayFit(df_avg, xAxisName = self.__xAxisName, modelTypes=self.__modelTypes, statsTypes=self.__statsTypes) # model.startx, starty, samplexs, sampleys
-    bs = model.modelsummary.loc['b',:]
-    t12s = model.modelsummary.loc['t12',:]
-    r2s = model.modelsummary.loc['r2',:]
+    cpalette = px.colors.qualitative.Dark24
     
-    xsamples = model.samplexs
-    ysamples = dict()
-    ysamples['light'] = model.sampleys
-    ysamples['heavy'] = 100 - ysamples['light']
+    # call ExpoDecayFit module
+    fit = edf.ExpoDecayFit(df_avg, xAxisName = self.__xAxisName, modelTypes=self.__modelTypes, statsTypes=self.__statsTypes) # model.startx, starty, samplexs, sampleys
     
-    xrange = round( min( max(6, 1.8*t12s['LnLM1']) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
+    bs, t12s, r2s = [ fit.modelsummary.loc[t,:] for t in self.__statsTypes ]
     
+    xsamples = fit.samplexs
+    ysamples = dict( light=fit.sampleys, heavy=100-fit.sampleys )
+    
+    # calculate harmonic mean half-life for protein here
+    bavg = sum(bs)/len(bs)
+    t12avg = np.log(2)/bavg
+    
+    modelChoice = 'CFit'
+    xrange = round( min( max(6, 1.8*t12avg) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
  
-    colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
+    # colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
     # symbols = dict(heavy='x', light='cross') # try hexagon
-    symbols = dict(heavy='circle', light='circle') # try hexagon
-
-    types=('heavy','light')
+    # symbols = dict(heavy='circle', light='circle') # try hexagon
+    symbol = 'circle'
+    types = ('light','heavy')
+    models = self.__modelTypes # (self.__modelTypes[0], self.__modelTypes[2]) # 'LnLM1', 'LnLM2', 'CFit'
+    colorCnt, incr = 0, 2
+    legendnames = dict( light='Light data (degradation)', heavy='Heavy data (synthesis)')
+    
     fig = go.Figure()
-    # for t in types:
-    markeropt = dict(color=colors['light'], symbol=symbols['light'])
-    specs = dict(mode='markers', name='Light', showlegend=False, connectgaps=False)
-    fig = self.__add1goTrace(fig, x=df_avg[self.__xAxisName], y=df_avg[dataColName], specs=specs, markeropt=markeropt)
-    legendname = 'Light'+' (degradation)' # (synthesis)' if t=='light' else '-'
-    specs = dict(mode='lines', name=legendname, showlegend=True, connectgaps=True)
-    fig = self.__add1goTrace(fig, x=xsamples, y=ysamples['light']['LnLM1'], specs=specs, markeropt=markeropt )
-    fig = self.__add1goTrace(fig, x=xsamples, y=ysamples['light']['CFit'], specs=specs, markeropt=markeropt )
+    for t in types:
+      # data
+      markeropt = dict(color=cpalette[colorCnt], symbol=symbol, size=4)
+      specs = dict(mode='markers', name=legendnames[t], showlegend=True, connectgaps=False)
+      fig = self.__add1goTrace(fig, x=xs, y=ys[t], specs=specs, markeropt=markeropt)
+      colorCnt += incr
+      
+      # curve model fit
+      for m in models:
+        markeropt = dict(color=cpalette[colorCnt], symbol=symbol, size=2)
+        specs = dict(mode='lines', name=f'{t.capitalize()} ({m}: {t12s[m].__round__(1)}d, {r2s[m].__round__(3)})', showlegend=True, connectgaps=True)
+        fig = self.__add1goTrace(fig, x=xsamples, y=ysamples[t][m], specs=specs, markeropt=markeropt )
+        colorCnt += incr
         
     if len(fig.data) < 1 : return #  if nothing showing, skip
     
     # show half life if within range
-    if t12s['LnLM1'] < xrange: fig.add_vline(x=t12s['LnLM1'], line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12s['LnLM1'].__round__(2)), annotation_position='bottom right')
+    if t12avg < xrange: fig.add_vline(x=t12avg, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12avg.__round__(2)), annotation_position='bottom right')
     
-    fig.update_layout( title=labels['title'], xaxis_title=labels['x'], yaxis_title=labels['y'],
-      # legend_title="_",
+    fig.update_layout( 
+      title=labels['title'], 
+      xaxis_title=labels['x'], 
+      yaxis_title=labels['y'],
+      legend_title="Data vs Model",
       font=dict(
           family=labels['fontfamily'],
           size=labels['size'],
@@ -548,18 +533,10 @@ class ProteinTurnover:
     
     proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
     
-    if saveFigOpts['savePlot']:
-      filename = "RelAbundance_Gene-"+ proteingenename 
-      self.__savePlot(saveFigOpts, fig, filename)
-    else: 
-      fig.show()
+    if saveFigOpts['savePlot']: self.__savePlot(saveFigOpts, fig, "RelAbundance_Gene-"+ proteingenename)
+    if saveFigOpts['showPlot']: fig.show()
     
     return fig
-  
-  # def __addExpTrendline(self, fig, df, peptide, lines=dict(), markers=dict(), trendlines = dict()): # add trendline for the "light" peptide with exponential decay trendline
-  #   # if light is present, fit it with exponential trendline
-  #   if df.loc[:"light"] : pass
-  #   return fig
   
   def abundancePlot1Pg(self, prtnGrp, labels=dict(), saveFigOpts = dict() ):
     """
@@ -600,23 +577,22 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    plotmax = 4 # in/out
+    # plotmax = 4 # in/out
     # for prtnGrp in self.PgList:
     for prtnGrp in self.df_PgGeneDescSummary.index.values: # multi-level index with (protein, gene)
-      if plotmax == 0 : break # in/out
+      # if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      plotmax -= 1 # in/out
+      # plotmax -= 1 # in/out
       
     self.calcProteinDecayConstFromPeptides()
     return
   
   def calcProteinDecayConstFromPeptides(self):
+    allbt12s = [ (self.__statsTypes[0]+'_'+m, self.__statsTypes[1]+'_'+m) for m in self.__modelTypes ] # list of names (b,t12)
     # after calculating b-constants and half-lives of each peptide, find the average for the protein group.
     # Use mean value among the b-constants, which is same as using harmonic mean of all the half-lives.
     df = self.df_Peptides.reset_index()
     df.drop(list(df.filter(regex = '^\d$')), axis = 1, inplace=True) # remove 0, 1, 2, 4, 6 data columns. Only left with peptide statistics columns 
-    allbt12s = [ (self.__statsTypes[0]+'_'+m, self.__statsTypes[1]+'_'+m) for m in self.__modelTypes ] # list of names (b,t12)
-    # allt12s = [ self.__statsTypes[1]+'_'+m for m in self.__modelTypes ]
     dfprtn = df.groupby( self.__compoIndexGene ).agg(  { p[0] :'mean' for p in allbt12s } )  # match multi-level index for df_PgGeneDescSmmary, using dictionary comprehension
 
     # self.df_PgGeneDescSummary.join(dfprtn, how='outer') # probably should be 'right' instead of outer, after cleaning up.
@@ -637,13 +613,14 @@ pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
 # pto.chkDfPgGeneSummaryIndexUnique()
 #%%
-# savenow = True
-savenow = False
+# saveplot, showplot = False, True
+saveplot, showplot = True, False
+# saveplot, showplot = True, True
+# saveplot, showplot = False, False
 savePath = "../media/plots/"
 
-#%%
-# pto.abundancePlotPgAll(savePlot=savenow, saveFolder=savePath)
-pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=savenow, folder=savePath) )
+# pto.abundancePlotPgAll(savePlot=saveplot, saveFolder=savePath)
+pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%
@@ -669,7 +646,6 @@ pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=savenow, folder=savePath) )
 #  75425	Q6ZSR9	TQNNLESDYLAR	NaN	  Uncharacterized protein FLJ45252	1	    0.676101	0.545013	0.636126	0.099641	0	    0.323899	0.454987	0.363874	0.900359
 # 148537	Q6ZSR9	TQNNLESDYLAR	NaN	  Uncharacterized protein FLJ45252	1	    0.607315	0.413771	NaN	      0.255406	0	    0.392685	0.586229	NaN	      0.744594
 
-#%% 
 # 20230620 data
 # Peptide df has these extras, compared to PgGeneDescSummary df
 # [('Q15147', 'PLCB4'),
@@ -703,5 +679,3 @@ pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=savenow, folder=savePath) )
  # 
  # Summary df has these four extras however:
  # [('Q8N1Y9', nan), ('B2RBV5', nan), ('Q6ZTK2', nan), ('Q6ZSR9', nan)].
-
-#%%
