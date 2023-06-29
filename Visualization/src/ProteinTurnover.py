@@ -34,22 +34,19 @@ class ProteinTurnover:
     self.__yUnit = '%'
     self.__xAxisName = 'Time'
     self.__xUnit = 'day'
-    # self.__compoIndexPeptide = ['PG.ProteinGroups', 'Peptide', 'wtype'] # basic composite index used in DFs
     # Match with ExpoDecayFit module:
-    self.__modelTypes = ("LnLM1", "LnLM2", "CFit") # trying three different models in ExpoDecayFit: LnLM1 (sklearn LM), LnLM2 (statsmodels LM), CFit (scipy curve_fit)
     self.__statsTypes = ('b','t12','r2') # keeping track of three results/statics from exponential fit
+    self.__modelTypes = ("LnLM1", "LnLM2", "CFit") # trying three different models in ExpoDecayFit: LnLM1 (sklearn LM), LnLM2 (statsmodels LM), CFit (scipy curve_fit)
 
     self.__compoIndexPeptide = ['Protein', 'Peptide'] # basic composite index used in Peptide and related DFs
     self.__compoIndexGene = ['Protein', 'Gene_x'] # basic composite index used in other dfs.
     self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be plotted
-    self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 'wtype', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
-    self.df_PgGeneDescSummary = None # initialize, serve as lookup table between PgProteinGroups, PgGenes, and PgProteinDescriptions, PLUS list/tuple of peptides
+    self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
     # self.PgList = [] # initialize, the list of ProteinGroups in the dataset
     self.df_PgPivot = [] # initialize, for plotting
     self.__ingestData(filepath=filepath) # set df_Peptides
     self.__setPgPivot()
     self.__modifyDfPeptides()
-    self.__setPgGeneDescSummary() # set df_PgGeneDescSummary as well as PgList, but need df_PgPivot first
     return
   
   def __ingestData(self, filepath):
@@ -57,26 +54,24 @@ class ProteinTurnover:
     Args:
         filepath (_type_): the source file location. Use os to ensure right format
         x_unit (str, optional): the unit for x-axis. Defaults to None.
-
     Returns: None, will set df_Peptides
     """
-    self.df_Peptides = pd.read_excel(filepath) if (filepath[-5:] == '.xlsx' or filepath[-4:] == '.xls') else pd.read_csv(filepath) if (filepath[-4:] == '.csv') else None
+    df = pd.read_excel(filepath) if (filepath[-5:] == '.xlsx' or filepath[-4:] == '.xls') else pd.read_csv(filepath) if (filepath[-4:] == '.csv') else None
     
     # clean up column names, avoid dots in names
-    self.df_Peptides.columns =  [ col.replace('.','_') for col in self.df_Peptides.columns.values ]
+    df.columns =  [ col.replace('.','_') for col in df.columns.values ]
     # 20230620 data file no longer has day0 columns. Re-create here:
-    self.df_Peptides['iMN_Day0_Light_Relative_Abundance'] = 1
-    # self.df_Peptides['iMN_Day0_Heavy_Relative_Abundance'] = 0
+    df['iMN_Day0_Light_Relative_Abundance'] = 1
+    # df['iMN_Day0_Heavy_Relative_Abundance'] = 0
     
     # Keep only the light series, drop heavy
-    self.df_Peptides.drop(list(self.df_Peptides.filter(regex = 'Heavy_Relative_Abundance')), axis = 1, inplace = True)
+    df.drop(list(df.filter(regex = 'Heavy_Relative_Abundance')), axis = 1, inplace = True)
     
-    # rename columns as 0, 1, 2, 4, 6 for days
-    # import re
-    self.df_Peptides.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)
+    # import re  # rename columns as 0, 1, 2, 4, 6 for days
+    df.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)
+    df['chart'] = 0 # keep track of whether the peptide has enough data points to make a plot. default to 0
 
-    # set composite index 
-    self.df_Peptides.set_index(self.__compoIndexPeptide, inplace=True)  
+    self.df_Peptides = df.set_index(self.__compoIndexPeptide)  # set composite index and save
 
     if not self.chkDfPeptidesIndexUnique(): print("Protein Group in df_Peptides not unique")
     
@@ -132,75 +127,91 @@ class ProteinTurnover:
     
     return peptides
   
-  def __setPgGeneDescSummary(self):
-    """
-    setting up the df_PgGeneDescSummary as lookup table self.df_PgGeneDescSummary as well as 
-    setting up the list of ProteinGroup values as attribute self.PgList
-    It is also saving the main results of the protein charts.
+  # def __setPgGeneDescSummary(self):
+  #   """
+  #   setting up the df_PgGeneDescSummary as lookup table self.df_PgGeneDescSummary as well as 
+  #   setting up the list of ProteinGroup values as attribute self.PgList
+  #   It is also saving the main results of the protein charts.
     
-    Returns: None
-    """
-    # set df_PgGeneDescSummary
-    # compoIndexGene = ['PG.ProteinGroups', 'PG.Genes']
-    # selectedCols = compoIndexGene + ['PG.ProteinDescriptions']
-    compoIndexGene = self.__compoIndexGene
-    selectedCols = compoIndexGene + ['Protein_Description']
-    df = self.df_Peptides.reset_index()[selectedCols]
-    df.set_index(compoIndexGene, inplace=True)
-    df['chart'] = 0 # keep track of whether the protein has enough data points to make a plot. default to 0
-    # df.assign( chart = 0 ) # keep track of whether the protein has enough data points to make a plot. default to 0
-    self.df_PgGeneDescSummary = df.drop_duplicates()
-    if not self.chkDfPgGeneSummaryIndexUnique(): print("Protein Group - GeneId combo not unique")
+  #   Returns: None
+  #   """
+  #   # set df_PgGeneDescSummary
+  #   # compoIndexGene = ['PG.ProteinGroups', 'PG.Genes']
+  #   # selectedCols = compoIndexGene + ['PG.ProteinDescriptions']
+  #   compoIndexGene = self.__compoIndexGene
+  #   selectedCols = compoIndexGene + ['Protein_Description']
+  #   df = self.df_Peptides.reset_index()[selectedCols]
+  #   df.set_index(compoIndexGene, inplace=True)
+  #   # df['chart'] = 0 # keep track of whether the protein has enough data points to make a plot. default to 0
+  #   # df.assign( chart = 0 ) # keep track of whether the protein has enough data points to make a plot. default to 0
+  #   self.df_PgGeneDescSummary = df.drop_duplicates()
+  #   if not self.chkDfPgGeneSummaryIndexUnique(): print("Protein Group - GeneId combo not unique")
     
-    # next add list (tuple) of peptides to each row of prtnGrp
-    # self.df_PgGeneDescSummary.loc[:,"peptides"] = self.df_PgGeneDescSummary.apply(lambda x: self.peptidesFromPrtnGrp(x.name[0]), axis = 1)
-    # Warning: A value is trying to be set on a copy of a slice from a DataFrame. 
-    # False positive: https://stackoverflow.com/questions/42105859/pandas-map-to-a-new-column-settingwithcopywarning.
-    self.df_PgGeneDescSummary.assign( peptides = self.df_PgGeneDescSummary.apply(lambda x: self.peptidesFromPrtnGrp(x.name[0]), axis = 1) )
-    return
+  #   # next add list (tuple) of peptides to each row of prtnGrp
+  #   # self.df_PgGeneDescSummary.loc[:,"peptides"] = self.df_PgGeneDescSummary.apply(lambda x: self.peptidesFromPrtnGrp(x.name[0]), axis = 1)
+  #   # Warning: A value is trying to be set on a copy of a slice from a DataFrame. 
+  #   # False positive: https://stackoverflow.com/questions/42105859/pandas-map-to-a-new-column-settingwithcopywarning.
+  #   self.df_PgGeneDescSummary.assign( peptides = self.df_PgGeneDescSummary.apply(lambda x: self.peptidesFromPrtnGrp(x.name[0]), axis = 1) )
+  #   return
   
-  def exportPgGeneDescSummary(self, filename="", format='json'):
-    """
-    Export df_PgGeneDescSummary table for web dev
-    Args:
-        format (str, optional): _description_. Defaults to 'json'.
-    """
-    filename = filename if filename else "PgGeneDescSummary"
-    if format=='csv': 
-      self.df_PgGeneDescSummary.to_csv(filename+".csv")
-    else: # default json, will have protein as key, values will be gene_x, description, and peptide list
-      df = self.df_PgGeneDescSummary.copy()
-      df.reset_index(inplace=True)
-      df.rename({'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}, axis=1, inplace=True)
-      # df.set_index('Protein', inplace=True)
-      df.to_json(filename+".json", orient="records")
-    return
+  # def exportPgGeneDescSummary(self, filename="", format='json'):
+  #   """
+  #   Export df_PgGeneDescSummary table for web dev
+  #   Args:
+  #       format (str, optional): _description_. Defaults to 'json'.
+  #   """
+  #   filename = filename if filename else "PgGeneDescSummary"
+  #   if format=='csv': 
+  #     self.df_PgGeneDescSummary.to_csv(filename+".csv")
+  #   else: # default json, will have protein as key, values will be gene_x, description, and peptide list
+  #     df = self.df_PgGeneDescSummary.copy()
+  #     df.reset_index(inplace=True)
+  #     df.rename({'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}, axis=1, inplace=True)
+  #     # df.set_index('Protein', inplace=True)
+  #     df.to_json(filename+".json", orient="records")
+  #   return
   
-  def exportPgPeptides(self, filename="", format='json'):
+  def exportResults(self, filename="", format='json'):
     """
     Export df_Peptides table for web dev
     Args:
         format (str, optional): _description_. Defaults to 'json'.
     """
-    filename = filename if filename else "PgPeptides"
-    df = self.df_Peptides
-    df.filter(~df.columns.isin(['0','1','2','4','6'])) # do not keep the time data, just prtn, gene, desc, bs, t12s, r2s.
+    filename = filename if filename else "results"
+    df = self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1) # do not keep the time data, just prtn, gene, desc, bs, t12s, r2s.
     if format=='csv': 
       df.to_csv(filename+".csv")
-    else: # default json, will have protein as key, values will be gene_x, description, and peptide list
-      df.reset_index(inplace=True)
-      df.rename({'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}, axis=1, inplace=True)
-      # df.set_index('Protein', inplace=True)
-      df.to_json(filename+".json", orient="records")
+      return
+    
+    # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
+    pepCol = 'Peptide' # new column name for all peptide info per gene, for web json
+    newHeaders = {'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}
+    # [ v for i,v in newd.items() ]
+    statsHeaders = { s: [ s+'_'+m for m in self.__modelTypes ] for s in self.__statsTypes } # the stats metrics that we look for, in particular, b-decay constant, and t12-halfLife #  'b_LnLM1', 'b_LnLM2', 'b_CFit' #  't12_LnLM1', 't12_LnLM2', 't12_CFit' # 'r2_LnLM1', 'r2_LnLM2', 'r2_CFit'
+    modelMetricHeaders = sum( statsHeaders.values(), [])  #  'b_LnLM1', 'b_LnLM2', ... 't12_LnLM1' ... 'r2_CFit'
+    colHeads = [pepCol]+modelMetricHeaders # add 'Peptide' column to the modelMetricHeaders
+
+    df.reset_index(inplace=True)
+    df.rename(newHeaders, axis=1, inplace=True)
+    df_gb = df.groupby( list(newHeaders.values()), as_index=True, dropna=False)  # groupby object
+    df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
+    df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
+    df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
+    # next, get list of peptides and their metrics from different models into a dict()
+    df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
+    print(f'resulting results has dim: {df_res.shape}')
+    print(df_res.head(3))
+    df_res.reset_index(inplace=True)
+    df_res.to_json(filename+".json", orient="records")
     return
   
   def chkDfPeptidesIndexUnique(self): 
     # print(f'df_Peptides composite index ({", ".join( self.df_Peptides.index.names )}) is unique? {self.df_Peptides.index.is_unique}') 
     return self.df_Peptides.index.is_unique
   
-  def chkDfPgGeneSummaryIndexUnique(self): 
-    # print(f'df_PgGeneDescSummary composite index ({", ".join( self.df_PgGeneDescSummary.index.names )}) is unique? {self.df_PgGeneDescSummary.index.is_unique}')
-    return self.df_PgGeneDescSummary.index.is_unique
+  # def chkDfPgGeneSummaryIndexUnique(self): 
+  #   # print(f'df_PgGeneDescSummary composite index ({", ".join( self.df_PgGeneDescSummary.index.names )}) is unique? {self.df_PgGeneDescSummary.index.is_unique}')
+  #   return self.df_PgGeneDescSummary.index.is_unique
   
   def __setArgLabels(self, labels=dict(x=None, y=None, title=None, fontfamily=None, size=None) ):
     """
@@ -251,7 +262,7 @@ class ProteinTurnover:
     """
     setting generic keyword argument legend with title_font_family, size
     Args:
-        legendopt (dict, optional): title_font_family (str), font (dict), ...
+        legendopt (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
     Returns:
         dict: { title_font_family, font, ... }
     """
@@ -261,11 +272,6 @@ class ProteinTurnover:
     res['font']['size'] = res['font']['size'] if (res['font'].__contains__('size') and res['font']['size']>0) else 7
     return res
   
-  # legend=dict(
-  #   title_font_family='Courier New',
-  #   font=dict(
-  #       size=8
-  #   )
   # def __setArgTrendlines(self, trendlines=dict(show=False, solid=True, color=None, width=None) ):
   #   """
   #   setting generic keyword argument trendlines into show, solid, color, and width
@@ -307,18 +313,20 @@ class ProteinTurnover:
     """
     # https://plotly.com/python/marker-style/ # hourglass, cross, x-thin, ...
     mode = specs['mode'] if (specs.__contains__('mode') and specs['mode']) else 'lines'
-    showlegend = specs['showlegend'] if ( specs.__contains__('showlegend') and isinstance(specs['showlegend'], bool) ) else False
     name = specs['name'] if (specs.__contains__('name') and specs['name']) else '-'
     connectgaps = specs['connectgaps'] if (specs.__contains__('connectgaps') and isinstance(specs['connectgaps'], bool) ) else True
+
+    showlegend = specs['showlegend'] if ( specs.__contains__('showlegend') and isinstance(specs['showlegend'], bool) ) else False
+    legendgroup = specs['legendgroup'] if (specs.__contains__('legendgroup') and specs['legendgroup']) else specs['name']
     # check lineopt standards
     # check markeropt standards
     
-    fig.add_trace(go.Scatter( mode=mode, x=x, y=y, showlegend=showlegend, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt ))
+    fig.add_trace(go.Scatter( mode=mode, x=x, y=y, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
     # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendopt )
     
     return fig
   
-  def abundancePlot1Peptide(self, fig, df, prtnGrp, peptide, lineopt=dict(), markeropt=dict()):
+  def abundancePlot1Peptide(self, fig, df, prtnGrp, peptide, lineopt=dict(), markeropt=dict(), legendopt=dict()):
     """
     Args:
         fig (plotly fig): to be added with this new line plot
@@ -331,8 +339,7 @@ class ProteinTurnover:
     lineopt = self.__setArgLineopt(lineopt=lineopt)
     markeropt = self.__setArgMarkeropt(markeropt=markeropt)
     markeropt['color'] = lineopt['color']
-    markeropt['size'] = 3
-    # legendopt = self.__setArgLegendopt(legendopt=legendopt)
+    legendopt = self.__setArgLegendopt(legendopt=legendopt)
     #
     # df.columns = df.columns.droplevel(0) # further drop peptide level header 
     df.reset_index(inplace=True) # reset index to have 'time' column, for plotting
@@ -347,13 +354,28 @@ class ProteinTurnover:
     # xsamples = model.samplexs
     # xrange = round( min( max(6, 1.8*t12s[modelChoice]) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
     
-    # combine both light and heavy series data points and model lines
-    xall = tuple(df[self.__xAxisName])*2 +tuple(model.samplexs)*2
-    yall = tuple(df[peptide])+tuple(100-df[peptide])+tuple(ysamples)+tuple(100-ysamples)
+    # model lines
+    specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='lines',  showlegend=False, legendgroup = peptide)
+    markeropt['size'] = 2
+    # legendopt['showlegend'] = True 
+    specs['showlegend'] = True 
+    fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
 
-    showlegend = True
-    specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, showlegend=showlegend, mode='markers')
-    fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
+    specs = dict(connectgaps=False, mode='lines', showlegend=False, legendgroup = peptide)
+    fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(100-ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
+    
+
+    # data points
+    specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='markers',  showlegend=False, legendgroup = peptide)
+    markeropt['size'] = 4
+    fig = self.__add1goTrace(fig, x=tuple(df[self.__xAxisName])*2, y=tuple(df[peptide])+tuple(100-df[peptide]), specs=specs, lineopt=lineopt, markeropt=markeropt )
+    
+    # combine both light and heavy series data points and model lines
+    # xall = tuple(df[self.__xAxisName])*2 +tuple(model.samplexs)*2
+    # yall = tuple(df[peptide])+tuple(100-df[peptide])+tuple(ysamples)+tuple(100-ysamples)
+
+    
+    # fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
     
     # save results in df_Peptides
     for m in self.__modelTypes:
@@ -383,13 +405,17 @@ class ProteinTurnover:
     colorcntmax = len(cpalette)    
     fig = go.Figure()
     for peptide in peptides: 
-      fig = self.abundancePlot1Peptide(fig=fig, df=df[[peptide]], prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2) )
+      fig = self.abundancePlot1Peptide(fig=fig, df=df[[peptide]], prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendopt=legendopt )
       colorcnt += 1
     
     if len(fig.data) < 1 : return #  if nothing showing, skip
     
     fig.update_layout( 
-      title=labels['title'], 
+      title={
+        'text': labels['title'],
+        'x': 0.5,
+        'xanchor': 'center'
+        }, 
       xaxis_title=labels['x'], 
       yaxis_title=labels['y'],
       legend_title="Peptide",
@@ -494,13 +520,14 @@ class ProteinTurnover:
     models = self.__modelTypes # (self.__modelTypes[0], self.__modelTypes[2]) # 'LnLM1', 'LnLM2', 'CFit'
     colorCnt, incr = 0, 2
     legendnames = dict( light='Light data (degradation)', heavy='Heavy data (synthesis)')
+    # legendopt['showlegend'] =  True 
     
     fig = go.Figure()
     for t in types:
       # data
       markeropt = dict(color=cpalette[colorCnt], symbol=symbol, size=4)
       specs = dict(mode='markers', name=legendnames[t], showlegend=True, connectgaps=False)
-      fig = self.__add1goTrace(fig, x=xs, y=ys[t], specs=specs, markeropt=markeropt)
+      fig = self.__add1goTrace(fig, x=xs, y=ys[t], specs=specs, markeropt=markeropt )
       colorCnt += incr
       
       # curve model fit
@@ -516,7 +543,11 @@ class ProteinTurnover:
     if t12avg < xrange: fig.add_vline(x=t12avg, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12avg.__round__(2)), annotation_position='bottom right')
     
     fig.update_layout( 
-      title=labels['title'], 
+      title={
+        'text': labels['title'],
+        'x': 0.5,
+        'xanchor': 'center'
+        }, 
       xaxis_title=labels['x'], 
       yaxis_title=labels['y'],
       legend_title="Data vs Model",
@@ -527,9 +558,6 @@ class ProteinTurnover:
       ), 
       legend=legendopt
     )
-    
-    # update df_PgGeneDescSummary table
-    self.df_PgGeneDescSummary.loc[prtnGrp,'chart'] = 1
     
     proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
     
@@ -560,7 +588,6 @@ class ProteinTurnover:
     _ = self.abundancePlotAllPeptides(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
     
     # Now plot protein level average with trendline
-    # labels['title'] = "Average for Protein: "+prtnGrp
     labels['title'] = "Average for "+ labels['title']
     _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
 
@@ -577,31 +604,25 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    # plotmax = 4 # in/out
+    plotmax = 12 # in/out
     # for prtnGrp in self.PgList:
-    for prtnGrp in self.df_PgGeneDescSummary.index.values: # multi-level index with (protein, gene)
-      # if plotmax == 0 : break # in/out
+    #
+    # Need to get list of (protein,gene) 
+    # This method somehow is dropping the ones with NA description. Don't know why.
+    # compoIndexGene = pto._ProteinTurnover__compoIndexGene
+    # dfp = pto.df_Peptides.reset_index()[compoIndexGene+['Protein_Description']].set_index(compoIndexGene).drop_duplicates()
+    #
+    # Use this groupby method (results in 28 more rows, 9883 vs 9855)
+    # 
+    df = self.df_Peptides.reset_index().loc[:, pto._ProteinTurnover__compoIndexGene + ['chart']].groupby( self.__compoIndexGene , as_index=True, dropna=False)[['chart']].agg('sum')
+    #
+    for prtnGrp in df.index.values: # multi-level index with (protein, gene)
+      if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      # plotmax -= 1 # in/out
+      plotmax -= 1 # in/out
       
-    self.calcProteinDecayConstFromPeptides()
     return
   
-  def calcProteinDecayConstFromPeptides(self):
-    allbt12s = [ (self.__statsTypes[0]+'_'+m, self.__statsTypes[1]+'_'+m) for m in self.__modelTypes ] # list of names (b,t12)
-    # after calculating b-constants and half-lives of each peptide, find the average for the protein group.
-    # Use mean value among the b-constants, which is same as using harmonic mean of all the half-lives.
-    df = self.df_Peptides.reset_index()
-    df.drop(list(df.filter(regex = '^\d$')), axis = 1, inplace=True) # remove 0, 1, 2, 4, 6 data columns. Only left with peptide statistics columns 
-    dfprtn = df.groupby( self.__compoIndexGene ).agg(  { p[0] :'mean' for p in allbt12s } )  # match multi-level index for df_PgGeneDescSmmary, using dictionary comprehension
-
-    # self.df_PgGeneDescSummary.join(dfprtn, how='outer') # probably should be 'right' instead of outer, after cleaning up.
-    for p in allbt12s: 
-      self.df_PgGeneDescSummary[p[0]] = dfprtn[p[0]] # copy the b values to summary table
-      self.df_PgGeneDescSummary[p[1]] = np.log(2)/self.df_PgGeneDescSummary[p[0]]  # calculate t12 values for each row
-    #
-    
-    return
 
 #%%
 # file = os.path.join(os.getcwd(), "../data/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
@@ -611,10 +632,9 @@ file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiT
 
 pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
-# pto.chkDfPgGeneSummaryIndexUnique()
 #%%
-# saveplot, showplot = False, True
-saveplot, showplot = True, False
+saveplot, showplot = False, True
+# saveplot, showplot = True, False
 # saveplot, showplot = True, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
