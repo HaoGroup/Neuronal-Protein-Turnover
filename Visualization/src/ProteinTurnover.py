@@ -184,12 +184,12 @@ class ProteinTurnover:
       return
     
     # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
-    pepCol = 'Peptide' # new column name for all peptide info per gene, for web json
+    pepCol = 'peptides' # new column name for all peptide info per gene, for web json
     newHeaders = {'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}
     # [ v for i,v in newd.items() ]
     statsHeaders = { s: [ s+'_'+m for m in self.__modelTypes ] for s in self.__statsTypes } # the stats metrics that we look for, in particular, b-decay constant, and t12-halfLife #  'b_LnLM1', 'b_LnLM2', 'b_CFit' #  't12_LnLM1', 't12_LnLM2', 't12_CFit' # 'r2_LnLM1', 'r2_LnLM2', 'r2_CFit'
     modelMetricHeaders = sum( statsHeaders.values(), [])  #  'b_LnLM1', 'b_LnLM2', ... 't12_LnLM1' ... 'r2_CFit'
-    colHeads = [pepCol]+modelMetricHeaders # add 'Peptide' column to the modelMetricHeaders
+    colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders
 
     df.reset_index(inplace=True)
     df.rename(newHeaders, axis=1, inplace=True)
@@ -200,7 +200,7 @@ class ProteinTurnover:
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
     print(f'resulting results has dim: {df_res.shape}')
-    print(df_res.head(3))
+    print(df_res.head(2))
     df_res.reset_index(inplace=True)
     df_res.to_json(filename+".json", orient="records")
     return
@@ -360,6 +360,7 @@ class ProteinTurnover:
     # legendopt['showlegend'] = True 
     specs['showlegend'] = True 
     fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
+    # fig = self.__add1goTrace(fig, x=tuple(model.samplexs)+(np.nan,)+tuple(model.samplexs ), y=tuple(ysamples)+(np.nan,)+tuple(100-ysamples) , specs=specs, lineopt=lineopt, markeropt=markeropt )
 
     specs = dict(connectgaps=False, mode='lines', showlegend=False, legendgroup = peptide)
     fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(100-ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
@@ -377,6 +378,8 @@ class ProteinTurnover:
     
     # fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
     
+    # update chart value for this peptide
+    if len(fig.data) >0 : self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ] = 1
     # save results in df_Peptides
     for m in self.__modelTypes:
       for s in self.__statsTypes:
@@ -413,12 +416,13 @@ class ProteinTurnover:
     fig.update_layout( 
       title={
         'text': labels['title'],
-        'x': 0.5,
+        'x': 0.45,
         'xanchor': 'center'
         }, 
       xaxis_title=labels['x'], 
       yaxis_title=labels['y'],
       legend_title="Peptide",
+      legend_tracegroupgap=1, 
       font=dict(
           family=labels['fontfamily'],
           size=labels['size'],
@@ -430,10 +434,10 @@ class ProteinTurnover:
     proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
     
     if saveFigOpts['savePlot']:
-      filename = "RelAbundance_Gene-"+ proteingenename +"-peptides" # title starts with "Gene: " or "Protein Group: "
-      self.__savePlot(saveFigOpts, fig, filename)
-    else: 
-      fig.show()
+      options = saveFigOpts.copy() 
+      options['folder'] += 'htmls/peptides/'
+      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
+    if saveFigOpts['showPlot']: fig.show()
     
     return fig
   
@@ -448,12 +452,12 @@ class ProteinTurnover:
     """
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
 
-    # import os
-    folder = os.path.join( saveFigOpts['folder'], 'pngs' )
-    # save static png from plotly GO, requires plotly GO needs kaleido installed
-    if not os.path.exists(folder): os.mkdir(folder)
-    filepath = os.path.join(folder,filename+'.png')
-    fig.write_image( filepath )
+    # # import os
+    # folder = os.path.join( saveFigOpts['folder'], 'pngs' )
+    # # save static png from plotly GO, requires plotly GO needs kaleido installed
+    # if not os.path.exists(folder): os.mkdir(folder)
+    # filepath = os.path.join(folder,filename+'.png')
+    # fig.write_image( filepath )
     
     # save plotly GO as interactive graph in html
     # 
@@ -461,7 +465,8 @@ class ProteinTurnover:
     # <script src="./js/plotly-2.20.0.min.js" charset="utf-8"></script>
     # <script src="https://cdn.plot.ly/plotly-2.20.0.min.js" charset="utf-8"></script>
     # <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
-    folder = os.path.join( saveFigOpts['folder'], 'htmls' )
+    folder = os.path.join( saveFigOpts['folder'] )
+    # folder = os.path.join( saveFigOpts['folder'], 'htmls' )
     if not os.path.exists(folder): os.mkdir(folder)
     filepath = os.path.join(folder, filename+".html")
     incPlotlyJs = "plotly.min.js"  # False # add cdn plotly js on the html directly to minimize size of each html # symbolic link
@@ -545,12 +550,13 @@ class ProteinTurnover:
     fig.update_layout( 
       title={
         'text': labels['title'],
-        'x': 0.5,
+        'x': 0.45,
         'xanchor': 'center'
         }, 
       xaxis_title=labels['x'], 
       yaxis_title=labels['y'],
       legend_title="Data vs Model",
+      legend_tracegroupgap=4,
       font=dict(
           family=labels['fontfamily'],
           size=labels['size'],
@@ -561,7 +567,10 @@ class ProteinTurnover:
     
     proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
     
-    if saveFigOpts['savePlot']: self.__savePlot(saveFigOpts, fig, "RelAbundance_Gene-"+ proteingenename)
+    if saveFigOpts['savePlot']: 
+      options = saveFigOpts.copy() 
+      options['folder'] += 'htmls/proteins/'
+      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
     if saveFigOpts['showPlot']: fig.show()
     
     return fig
@@ -604,7 +613,7 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    plotmax = 12 # in/out
+    plotmax = 6 # in/out
     # for prtnGrp in self.PgList:
     #
     # Need to get list of (protein,gene) 
