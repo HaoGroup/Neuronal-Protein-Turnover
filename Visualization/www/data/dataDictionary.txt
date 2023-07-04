@@ -1,0 +1,20 @@
+ProteinGeneRecords.json (20230629)
+"prtn":"A0A024RBG1",  // unique
+"gene":"NUDT4B",  // unique
+"desc":"Diphosphoinositol polyphosphate phosphohydrolase NUDT4B",
+"b_LnLM1":0.2661044343,    Average of the decay constant b for all the peptides in the protein group, model LM1 (log-linear)
+"b_LnLM2":0.2661044343,    Average of the decay constant b for all the peptides in the protein group, model LM2 (log-linear)
+"b_CFit":0.3961805563,     Average of the decay constant b for all the peptides in the protein group, model CFit (curve-fit) 
+"t12_LnLM1":2.6047937997,   log(2)/decay constant
+"t12_LnLM2":2.6047937997,   log(2)/decay constant
+"t12_CFit":1.7495739493,    log(2)/decay constant
+"chart": 0 or 1 // whether plot was created. Some does not have enough data to plot.
+"peptides":{"Peptide":["LLGIFEQNQDR","LLGIFEQNQDRK"],"b_LnLM1":[0.2661044343,null],"b_LnLM2":[0.2661044343,null],"b_CFit":[0.3961805563,null],"t12_LnLM1":[2.6047937997,null],"t12_LnLM2":[2.6047937997,null],"t12_CFit":[1.7495739493,null],"r2_LnLM1":[0.5516238162,null],"r2_LnLM2":[0.8941323377,null],"r2_CFit":[0.7703222339,null]}
+ (list of peptide names, and for each peptide, the decay constant b, the half life t12, the r-squared value r2, for the three models LM1, LM2, CFit)
+
+ProteinGeneRecords.json (20230612)
+"prtn":"P01023",  // unique
+"gene":"A2M",  // some null values
+"chart": 0 or 1 // whether plot was created. Some does not have enough data to plot.
+"desc":"Alpha-2-macroglobulin",
+"peptides":["YFPETWIWDLVVVNSAGVAEVGVTVPDTITEWK"] (list of peptide names)
