@@ -486,7 +486,7 @@ class ProteinTurnover:
     # # import os
     # folder = os.path.join( saveFigOpts['folder'], 'pngs' )
     # # save static png from plotly GO, requires plotly GO needs kaleido installed
-    # if not os.path.exists(folder): os.mkdir(folder)
+    # if not os.path.exists(folder): os.makedirs(folder)
     # filepath = os.path.join(folder,filename+'.png')
     # fig.write_image( filepath )
     
@@ -498,7 +498,7 @@ class ProteinTurnover:
     # <script src="https://cdn.plot.ly/plotly-latest.min.js" charset="utf-8"></script>
     folder = os.path.join( saveFigOpts['folder'] )
     # folder = os.path.join( saveFigOpts['folder'], 'htmls' )
-    if not os.path.exists(folder): os.mkdir(folder)
+    if not os.path.exists(folder): os.makedirs(folder)
     filepath = os.path.join(folder, filename+".html")
     incPlotlyJs = "plotly.min.js"  # False # add cdn plotly js on the html directly to minimize size of each html # symbolic link
     fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
@@ -678,8 +678,8 @@ file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiT
 pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
 #%%
-saveplot, showplot = False, True
-# saveplot, showplot = True, False
+# saveplot, showplot = False, True
+saveplot, showplot = True, False
 # saveplot, showplot = True, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
