@@ -272,6 +272,31 @@ class ProteinTurnover:
     res['font']['size'] = res['font']['size'] if (res['font'].__contains__('size') and res['font']['size']>0) else 7
     return res
   
+  def __setArgYerroropt(self, yerroropt=dict(type=None, array=None, arrayminus=None, symmetric=None, visible=None) ):
+    """
+    setting generic keyword argument yerror with type, array, arrayminus, symmetric, visible, value
+    Args:
+        yerroropt (dict, optional): type (str), array (list), arrayminus (list), symmetric (bool), visible (bool), value (float, for percent type)...
+    Returns:
+        dict: { type, array, ... }
+    """
+    # fig = go.Figure(data=go.Scatter(
+    #     x=[0, 1, 2],
+    #     y=[6, 10, 2],
+    #     error_y=dict(
+    #         type='data', # value of error bar given in data coordinates
+    #         array=[1, 2, 3],
+    #         visible=True)
+    # ))
+    res = yerroropt.copy()
+    res['type'] = res['type'] if (res.__contains__('type') and res['type']) else 'data' # 'data', 'percent'
+    res['symmetric'] = res['symmetric'] if ( res.__contains__('symmetric') and isinstance(res['symmetric'], bool) ) else True
+    res['visible'] = res['visible'] if ( res.__contains__('visible') and isinstance(res['visible'], bool) ) else True
+    res['array'] = res['array'] if (res.__contains__('array') and (not res['array'] is None) ) else None
+    res['arrayminus'] = res['arrayminus'] if (res.__contains__('arrayminus') and (not res['arrayminus'] is None) ) else None
+    res['value'] = res['value'] if (res.__contains__('value') and (not res['value'] is None) and res['type']=='percent') else None
+    return res
+  
   # def __setArgTrendlines(self, trendlines=dict(show=False, solid=True, color=None, width=None) ):
   #   """
   #   setting generic keyword argument trendlines into show, solid, color, and width
@@ -300,17 +325,22 @@ class ProteinTurnover:
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
-  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendopt=dict() ):
+  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendopt=dict(), yerroropt=dict() ):
     """
     Add 1 trace to go.Figure object
     Args:
         fig (Plotly go): Plotly graph_object
         x (list): x data
         y (list): y data
+        error_y (dict, optional): dict(type, array, arrayminus, visible, symmetric, value)
         specs (dict, optional): dict(mode, name, showlegend, connectgaps). Defaults to {}. name can have html tags.
         lineopt (dict, optional): line options. {color, width}. Defaults to {}.
         markeropt (dict, optional): marker options. {symbol, size, color}. Defaults to {}.
+        error_y (dict, optional): error bars for each datapoint. Defaults to None.
     """
+    yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
+    # check lineopt standards
+    # check markeropt standards
     # https://plotly.com/python/marker-style/ # hourglass, cross, x-thin, ...
     mode = specs['mode'] if (specs.__contains__('mode') and specs['mode']) else 'lines'
     name = specs['name'] if (specs.__contains__('name') and specs['name']) else '-'
@@ -318,12 +348,13 @@ class ProteinTurnover:
 
     showlegend = specs['showlegend'] if ( specs.__contains__('showlegend') and isinstance(specs['showlegend'], bool) ) else False
     legendgroup = specs['legendgroup'] if (specs.__contains__('legendgroup') and specs['legendgroup']) else specs['name']
-    # check lineopt standards
-    # check markeropt standards
     
-    fig.add_trace(go.Scatter( mode=mode, x=x, y=y, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+    if ( (not yerroropt['array'] is None) and yerroropt['visible']):
+      fig.add_trace(go.Scatter( mode=mode, x=x, y=y, error_y=yerroropt, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+    else: # add more conditions/scenarios here if needed
+      fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+      
     # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendopt )
-    
     return fig
   
   def abundancePlot1Peptide(self, fig, df, prtnGrp, peptide, lineopt=dict(), markeropt=dict(), legendopt=dict()):
@@ -473,7 +504,7 @@ class ProteinTurnover:
     fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
     return
       
-  def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendopt=dict() ):
+  def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendopt=dict(), yerroropt=dict() ):
     """
     Args:
         df (Dataframe): Pandas pivot table df
@@ -485,16 +516,21 @@ class ProteinTurnover:
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     legendopt = self.__setArgLegendopt(legendopt=legendopt)
+    yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
     dataColName = 'ProteinAverage' # use this when averging multiple peptides
     # lines = self.__setArgLines(lines=lines)
     # trendlines = self.__setArgTrendlines(trendlines=trendlines)
     # markers = self.__setArgMarkers(markers=markers)
     # 
     # Prep the data
-    if (len(df.columns) > 1) : # Pg_level needing to average all peptides
+    if (len(df.columns) > 1) : # Pg_level needing to average all peptides, also determine error bars
+      stdevs = df.std(axis=1) # these are in percentages, 0-100
+      confMultiplier = 1.0 # For 1 sd, 68% confidence if random sample. But Proteins are not consisting of random samples of peptide?
+      yerroropt['array'] = confMultiplier * stdevs if not np.allclose(stdevs,0, atol=1E-1) else None
       df_avg = pd.DataFrame( { dataColName : df.mean(axis = 1) } ) # na will be ignored !! Re-think strategy
     else:
       dataColName = df.columns.values[-1] # only 1 peptide, use it as dataColName
+      yerroropt['array'] = None
       df_avg = df.copy() # peptide level data
     df_avg.reset_index(inplace=True) # reset index to have 'time' column, for plotting
     xs = df_avg[self.__xAxisName]
@@ -532,7 +568,7 @@ class ProteinTurnover:
       # data
       markeropt = dict(color=cpalette[colorCnt], symbol=symbol, size=4)
       specs = dict(mode='markers', name=legendnames[t], showlegend=True, connectgaps=False)
-      fig = self.__add1goTrace(fig, x=xs, y=ys[t], specs=specs, markeropt=markeropt )
+      fig = self.__add1goTrace(fig, x=xs, y=ys[t], specs=specs, markeropt=markeropt, yerroropt=yerroropt )
       colorCnt += incr
       
       # curve model fit
@@ -613,7 +649,7 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    plotmax = 6 # in/out
+    plotmax = 12 # in/out
     # for prtnGrp in self.PgList:
     #
     # Need to get list of (protein,gene) 
