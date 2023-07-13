@@ -17,11 +17,15 @@ class ExpoDecayFit:
   """
   Exponential Decay Fit 
   """
-  def __init__(self, df, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
+  # def __init__(self, df, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
+  def __init__(self, df, xAxisName = 'Time', modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
     """_summary_
 
     Args:
         df (pandas Dataframe): Expected to be from pivot table, with Time as index, and Multi-index column either (wtype,peptide), or (wtype,average) for protein level
+        xAxisName (str): x-axis name
+        modelTypes (list/tuple): list of model types to be deployed
+        statsTypes (list/tuple): list of statistical parameters to be recorded. Defaults are b: decay constant, t12: half-life, and r2: r-squared value of fit
     """
     # self.__indexVals = tuple( df.index.values )
     # self.__indexX = pd.Series( self.__indexVals , name=self.__indexName) # 0,1,2,4,6
