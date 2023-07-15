@@ -96,11 +96,12 @@ class ProteinTurnover:
     
     # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
     pepCol = 'peptides' # new column name for all peptide info per gene, for web json
-    newHeaders = {'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}
+    newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
+    # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
     # [ v for i,v in newd.items() ]
     statsHeaders = { s: [ s+'_'+m for m in self.__modelTypes ] for s in self.__statsTypes } # the stats metrics that we look for, in particular, b-decay constant, and t12-halfLife #  'b_LnLM1', 'b_LnLM2', 'b_CFit' #  't12_LnLM1', 't12_LnLM2', 't12_CFit' # 'r2_LnLM1', 'r2_LnLM2', 'r2_CFit'
     modelMetricHeaders = sum( statsHeaders.values(), [])  #  'b_LnLM1', 'b_LnLM2', ... 't12_LnLM1' ... 'r2_CFit'
-    colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders+['support','proteinT12','proteinT12est'] # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders, plus others
+    colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders + ['support'] # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders, plus others
 
     df.reset_index(inplace=True)
     df.rename(newHeaders, axis=1, inplace=True)
