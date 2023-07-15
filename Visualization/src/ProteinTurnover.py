@@ -106,8 +106,10 @@ class ProteinTurnover:
     df.reset_index(inplace=True)
     df.rename(newHeaders, axis=1, inplace=True)
     df_gb = df.groupby( list(newHeaders.values()), as_index=True, dropna=False)  # groupby object
-    df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
-    df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
+    # df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
+    # df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
+    df_res = df_gb[["proteinT12","proteinT12est"]].agg('mean')  # this is not fastest. Mean is already calculated
+    # df_res["proteinT12est"] = df_gb["proteinT12est"].agg('mean')  # this is not fastest. Mean is already calculated
     df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
