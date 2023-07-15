@@ -96,17 +96,20 @@ class ProteinTurnover:
     
     # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
     pepCol = 'peptides' # new column name for all peptide info per gene, for web json
-    newHeaders = {'Protein': 'prtn', 'Gene_x': 'gene', 'Protein_Description': 'desc'}
+    newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
+    # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
     # [ v for i,v in newd.items() ]
     statsHeaders = { s: [ s+'_'+m for m in self.__modelTypes ] for s in self.__statsTypes } # the stats metrics that we look for, in particular, b-decay constant, and t12-halfLife #  'b_LnLM1', 'b_LnLM2', 'b_CFit' #  't12_LnLM1', 't12_LnLM2', 't12_CFit' # 'r2_LnLM1', 'r2_LnLM2', 'r2_CFit'
     modelMetricHeaders = sum( statsHeaders.values(), [])  #  'b_LnLM1', 'b_LnLM2', ... 't12_LnLM1' ... 'r2_CFit'
-    colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders+['support','proteinT12','proteinT12est'] # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders, plus others
+    colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders + ['support'] # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders, plus others
 
     df.reset_index(inplace=True)
     df.rename(newHeaders, axis=1, inplace=True)
     df_gb = df.groupby( list(newHeaders.values()), as_index=True, dropna=False)  # groupby object
-    df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
-    df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
+    # df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
+    # df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
+    df_res = df_gb[["proteinT12","proteinT12est"]].agg('mean')  # this is not fastest. Mean is already calculated
+    # df_res["proteinT12est"] = df_gb["proteinT12est"].agg('mean')  # this is not fastest. Mean is already calculated
     df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
