@@ -17,12 +17,13 @@ class ExpoDecayFit:
   """
   Exponential Decay Fit 
   """
-  # def __init__(self, df, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
-  def __init__(self, df, xAxisName = 'Time', modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
+  # def __init__(self, row, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
+  def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
     """_summary_
 
     Args:
-        df (pandas Dataframe): Expected to be from pivot table, with Time as index, and Multi-index column either (wtype,peptide), or (wtype,average) for protein level
+        # df (Pandas Dataframe): Expected to be from pivot table, with Time as index, and Multi-index column either (wtype,peptide), or (wtype,average) for protein level
+        row (Pandas Series): a row of data, from peptide typically. 
         xAxisName (str): x-axis name
         modelTypes (list/tuple): list of model types to be deployed
         statsTypes (list/tuple): list of statistical parameters to be recorded. Defaults are b: decay constant, t12: half-life, and r2: r-squared value of fit
@@ -36,6 +37,7 @@ class ExpoDecayFit:
     # self.fitys = np.array( () ) # y-data, typically 2d-array or pandas dataframe. Can have just average light and heavy two columns, or more if multiple peptides are included.
     
     self.__xAxisName = xAxisName # match with def in ProteinTurnover class
+    self.__xvalues = xvalues # match with def in ProteinTurnover class
     # self.__modelPolyFit = None # numpy polyfit (polynomial fit, like linear regression) 
     # self.__modelTypes = ('LnLM1', 'LnLM2', 'CFit', 'PolyFit')
     self.__modelTypes = modelTypes
@@ -52,12 +54,11 @@ class ExpoDecayFit:
     self.samplexs = self.__setSampleXs()
     # self.sampleys = pd.DataFrame(index = range(self.sampleN), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype].
     self.sampleys = pd.DataFrame(index = range(self.sampleN), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
-    self.__expFitAvgLightSeries(df)
+    self.__expFitAvgLightSeries(row, model=modelTypes[0] )
         
     return
   
   def __setSampleXs(self): return np.linspace(start=self.startx, stop=self.maxx, num = self.sampleN)
-
   # Curve fitting function # for Scipy curve_fitting
   def __expDecayFcn(self, x, lambd): return np.exp(-lambd * x)
 
@@ -75,21 +76,18 @@ class ExpoDecayFit:
   #   res['title'] = res['title'] if (res.__contains__('title') and res['title']) else None
   #   return res
 
-  def __expFitAvgLightSeries(self, df, model = 'all'):
+  def __expFitAvgLightSeries(self, row, model = 'all'):
     """
-    Create an exponential fit from the light series
+    Create an exponential fit from the light series, with x=0, y=1 (100%)
     Args:
-        df (pd DataFrame): df with x and y values to be fitted. y is expected to have 3 columns: Time, light and heavy
+        # df (pd DataFrame): df with x and y values to be fitted. y is expected to have 3 columns: Time, light and heavy
+        row (Pandas Series): a row of data, from peptide typically. 
     return: None
     """
     # import numpy as np
     # from sklearn.linear_model import LinearRegression
     # import statsmodels.api as sm
     # from scipy.optimize import curve_fit
-    
-    # df is pivot table with only 2 columns of averages. In case there is any NaN
-    if ( len(df.columns.values) != 2): print(f'exp fit df length = {len(df.columns.values)} with columns = {df.columns.values}')
-    df0 = df.dropna()
     
     # res = dict() # with b, t12, r2 values
     
@@ -99,23 +97,24 @@ class ExpoDecayFit:
     # x = df0[self.__xAxisName]
     # y = np.log(0.01*df0['light'])
     
-    x=df0[[self.__xAxisName]]
-    # y=0.01*df0['light']
-    # x=df0.loc[:,self.__xAxisName] # this give 1-D array, not working in sklearn
-    y=0.01*df0.loc[:, df.columns.values[-1] ] # convert back from percentages into proportions
-    logy=np.log(y)
+    xvals = ['0']+self.__xvalues
+    data = row[xvals].dropna()
+    data.index = data.index.astype(int)
+    x = data.index.values
+    y = data.values
+    logy=np.log(y.tolist())
     
     if (model=='LnLM1' or model=='all'):  # ScikitLearn LR
       thismodel = 'LnLM1'
       mdl = LinearRegression(fit_intercept=False)
-      mdl.fit(x, logy)
+      mdl.fit(x.reshape(-1,1), logy) # make sure x.shape is (n,1), instead of (n,)
       res_b = -mdl.coef_[0]
       # save result statistics
       self.modelsummary.loc[self.__statsTypes[0],thismodel] = res_b
       self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
-      self.modelsummary.loc[self.__statsTypes[2],thismodel] = mdl.score(x, logy)
+      self.modelsummary.loc[self.__statsTypes[2],thismodel] = mdl.score(x.reshape(-1,1), logy)
       # save model curve fit data points
-      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
       
     if (model=='LnLM2' or model=='all'):  # statsmodels LR
       thismodel = 'LnLM2'
@@ -129,20 +128,21 @@ class ExpoDecayFit:
       self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
       self.modelsummary.loc[self.__statsTypes[2],thismodel] = results.rsquared
       # save model curve fit data points
-      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
 
     if (model=='CFit' or model=='all'):  # Scipy CurveFit
       thismodel = 'CFit'
-      yvals = y.tolist() # or list(y) # y is a pd.core.series.Series
-      xvals = x[self.__xAxisName].tolist() # change from pd.Dataframe to pd.Series to list
-      popt, pcov = curve_fit(self.__expDecayFcn, xvals, yvals)
+      # yvals = y.tolist() # or list(y) # y is a pd.core.series.Series
+      # xvals = x[self.__xAxisName].tolist() # change from pd.Dataframe to pd.Series to list
+      popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
       # popt, pcov = curve_fit(lambda t, b: np.exp(-b * t), x, y) # popt-optimized parameters
       res_b = popt[0]
       # save result statistics
       self.modelsummary.loc[self.__statsTypes[0],thismodel] = res_b
       self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
       ## calculate r^2 ourselves
-      residuals = y - self.__expDecayFcn(x, res_b)[self.__xAxisName] # x needs to be np array here, not just list, and results needs to be a series, not Dataframe since y is a series
+      # residuals = y - self.__expDecayFcn(x, res_b)[self.__xAxisName] # x needs to be np array here, not just list, and results needs to be a series, not Dataframe since y is a series
+      residuals = y - self.__expDecayFcn(x, res_b) # x needs to be np array here, not just list, and results needs to be a series, not Dataframe since y is a series
       ss_res = np.sum(residuals**2)
       ss_tot = np.sum((y-np.mean(y))**2) # y needs to be np array here, not just list
       r_squared = 1 - (ss_res / ss_tot)
@@ -150,7 +150,7 @@ class ExpoDecayFit:
       # r_squared = r2_score(y, self.__expDecayFcn(xvals, res_b))
       self.modelsummary.loc[self.__statsTypes[2],thismodel] = r_squared
       # save model curve fit data points
-      self.sampleys[thismodel] = 100*np.exp(-res_b*self.samplexs) # express in percentages
+      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
       
     # if (model=='PolyFit' or model=='all'):  # Numpy Polyfit
       # pass
