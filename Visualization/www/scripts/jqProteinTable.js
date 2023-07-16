@@ -1,14 +1,35 @@
-function roundVal(value,digits) { return (value>0 || value<0) ? Math.round(value*(10**digits))/(10**digits) : ''; }
+function rdVal(value,digits) { return (value>0 || value<0) ? Math.round(value*(10**digits))/(10**digits) : ''; }
+function dplyFixedDigits(value,digits) { 
+  // assume value is numeric
+  let txt=value.toString();
+  let arr=txt.split(".");
+  if (arr.length==1) { txt+='.'; arr1len=0; } else { arr1len=arr[1].length; } // some are integers by itself, without decimal
+  return txt += Array(digits-arr1len+1).join('0');
+}
+function roundVal(value,digits) { let val = rdVal(value,digits); return dplyFixedDigits(val,digits); }
+
+function applyFancyTable() {
+  proteinTable = $("table#tbProtein").fancyTable({
+    sortColumn:1, // columns are 0, 1, 2, ... here
+    pagination: true,
+    perPage: 50,
+    globalSearch: true,
+    globalSearchExcludeColumns: [4,5] // columns are 1, 2, 3, ... here. exclude t1/2 and chart columns
+  });
+  return null;
+}
 
 function proteinTableCreate() {
   var tableCreated = $.Deferred();
 
   // load data
-  $.getJSON('data/ProteinGeneRecords.json', function(json) {  
+  $.getJSON('data/ProteinRecords.json', function(json) {  
     proteinData = json;
     // colNames = Object.keys(proteinData[0]); // ['prtn', 'gene', 'chart', 'desc', 'peptides'] // 2023-06-12
-    const colNames = ['prtn', 'gene', 'chart', 'desc','t12_LnLM1', 't12_CFit', 'Npeptides', 'peptides'];
-    const colHeaders = {'prtn': 'Protein',  'gene': 'Gene', 'chart': 'Chart', 'desc':'Description', 't12_LnLM1':'t<sub>&frac12; (log-linear)</sub>', 't12_CFit':'t<sub>&frac12; (curve-fit)</sub>', 'Npeptides':'&nbsp;&nbsp;&nbsp;&nbsp;# of<br/>peptides', 'peptides':'Peptides' } ;
+    // const colNames = ['prtn', 'gene', 'desc','proteinT12', 'chart', 'Npeptides', 'peptides'];
+    const colNames = ['prtn', 'gene', 'desc','proteinT12', 'chart', 'peptides'];
+    // const colHeaders = {'prtn': 'Protein',  'gene': 'Gene', 'desc':'Description', 'proteinT12':'t<sub>&frac12;</sub> (d)', 'chart': 'Chart', 'Npeptides':'&nbsp;&nbsp;&nbsp;&nbsp;# of<br/>good / all<br/>peptides', 'peptides':'Peptides' } ;
+    const colHeaders = {'prtn': 'Protein',  'gene': 'Gene', 'desc':'Description', 'proteinT12':'t<sub>&frac12;</sub> (d)', 'chart': 'Chart', 'peptides':'good / all<br/>peptides' } ;
 
     // Create Protein main table
     var table = document.getElementById("tbProtein");
@@ -20,7 +41,9 @@ function proteinTableCreate() {
       let th = document.createElement('th'); 
       th.className = colHeaders[n]; 
       th.setAttribute( 'title', "Click to sort table by this column" );
-      if ( n=='t12_LnLM1' || n=='t12_CFit' || n=='Npeptides') th.setAttribute("data-sortas", "numeric"); // numeric columns need this
+      if ( n=='proteinT12' || n=='peptides' ) th.setAttribute("data-sortas", "numeric"); // numeric columns need this
+      // if ( n=='proteinT12' ) th.setAttribute("data-sortas", "numeric"); // numeric columns need this
+      if ( n=="chart" ) th.style.textAlign = "center"; // the check marks are aligned right somehow.
       th.innerHTML = colHeaders[n]; 
       rowhead.appendChild(th); 
     });
@@ -34,6 +57,10 @@ function proteinTableCreate() {
       let row = document.createElement("tr");
       row.id = gene;
       tbbody.appendChild(row);
+      const chartsN = proteinrow['chart'];
+      const t12value = proteinrow['proteinT12'];
+      const t12estvalue = proteinrow['proteinT12est'];
+      const peptideslen = proteinrow["peptides"]["Peptide"].length;
 
       // add cells
       colNames.forEach( colname => {
@@ -41,43 +68,70 @@ function proteinTableCreate() {
         cell.className = colname;
         if (colname == "prtn" || colname == "gene") { 
           cell.innerHTML = proteinrow[colname];
-          if (proteinrow['chart']>0) {
-            cell.style.color = "blue";
+          if (chartsN) {
+            if (colname ==  "gene") { cell.style.color = "blue"; }
             cell.setAttribute( 'title', "Click to load charts" );
             cell.setAttribute( 'onclick', 'showProteinChart(this)');
-        }
-        } else if (colname == "Npeptides") { 
-          cell.innerHTML = proteinrow["peptides"]["Peptide"].length; // need to create hover for peptide list
-          cell.style.color = "blue";
-          cell.setAttribute( 'title', "Click to toggle show/hide of peptides" );
-          cell.setAttribute( 'onclick', 'pepListToggle(this)');
-        } else if (colname == "peptides") {
-          let div = document.createElement('div');
-          div.style.fontSize="small";
-          div.style.display="none";
-          const thisrow = proteinrow[colname];
-          let thisli = [];
-          for (let i=0; i<thisrow['Peptide'].length; i++) {
-            // let thisval = '';
-            let thisval = thisrow['Peptide'][i] + '<br/>LM1: ' + roundVal(thisrow['t12_LnLM1'][i],2)+ ', '+ roundVal(thisrow['r2_LnLM1'][i],4) + '<br/>LM2: ' + roundVal(thisrow['t12_LnLM2'][i],2)+ ', '+ roundVal(thisrow['r2_LnLM2'][i],4) + '<br/>CF: ' + roundVal(thisrow['t12_CFit'][i],2)+ ', '+ roundVal(thisrow['r2_CFit'][i],4) ;
-            thisli.push(thisval);
           }
-          div.innerHTML = "<ul><li>"+thisli.join("</li><li>") + "</li></ul>";
-          div.setAttribute("class", "peptideList");
-          cell.appendChild(div);
-          cell.setAttribute("class", "peptideList");
+        // } else if (colname == "Npeptides") { 
+        //   cell.innerHTML = chartsN+" / "+peptideslen; 
+        //   cell.style.color = "blue";
+        //   thistitle = "Click to toggle show/hide of peptides.";
+        //   cell.setAttribute( 'title', thistitle );
+        //   cell.setAttribute( 'onclick', 'pepListToggle(this)');
+        } else if (colname == "peptides") {
+          // first div to display N-good/N-all
+          let pepNdiv = document.createElement("div");
+          pepNdiv.style.display = "block"; // show all initially
+          pepNdiv.setAttribute("class", "peptideN");
+          pepNdiv.style.color = "blue";
+          pepNdiv.innerHTML = chartsN+" / "+peptideslen; 
+          cell.appendChild(pepNdiv);
+          // second div to display list of peptides
+          let peplistdiv = document.createElement('div');
+          // peplistdiv.style.fontSize="small";
+          peplistdiv.style.display = "none"; // hide all initially
+          const thisrow = proteinrow[colname];
+          let ul = document.createElement('ul');
+          for (let i=0; i<thisrow['Peptide'].length; i++) {
+            let li = document.createElement("li");
+            thissupporti = thisrow['support'][i];
+            thisr2i = thisrow['r2_CFit'][i];
+            thist12i = thisrow['t12_CFit'][i];
+            goodpep = (thissupporti>2 && thisr2i>0.8)?true:false;
+            li.innerHTML = thisrow['Peptide'][i] + ' ('+thissupporti+') t<sub>&frac12;</sub>: ' + roundVal(thist12i,2)+ 'd, r<sup>2</sup>: '+ roundVal(thisr2i,3) ;
+            if (goodpep) { li.style.fontWeight="bold"; } else { li.style.fontStyle="italic"; } 
+            ul.appendChild(li);
+          }
+          peplistdiv.appendChild(ul);
+          peplistdiv.setAttribute("class", "peptideList");
+          cell.appendChild(peplistdiv);
+          //
+          thistitle = "Click to toggle show/hide of peptides. Bold face indicates the 'good' peptides.";
+          cell.setAttribute( 'title', thistitle );
+          cell.setAttribute("class", "peptideCell");
+          cell.setAttribute( 'onclick', 'pepListToggle(this)');
           // cell.set
         } else if (colname == "chart") {
           // cell.innerHTML = (proteinrow[colname]>0) ? '&#x2713;' : '&#x274C;'; // 2713/2714
-          if (proteinrow[colname]>0) {
+          if (chartsN) {
             cell.style.color = "green";
             cell.innerHTML = '&#x2713;' ;  // '&#x2713;', '&#x2714;'  
           } else {
             cell.style.color = "red";
             cell.innerHTML = '&#x2717;' ; //  '&#x2717;', '&#x274C;
           }
-        } else if (colname == 't12_LnLM1' || colname=='t12_CFit' ) {
-          cell.innerHTML = roundVal(proteinrow[colname],2);
+        } else if (colname == 'proteinT12') {
+          if (t12value) {
+            cell.innerHTML = roundVal(t12value,2);//
+            cell.style.fontWeight = "bold";
+            thiscelltitle = "Average (harmonic mean) of the 'good' peptide half lives. If ALL peptides are used, the estimated average (harmonic mean) is "+roundVal(t12estvalue,2)+"d" ;
+          } else {
+            cell.innerHTML = roundVal(t12estvalue,2);//
+            cell.style.fontStyle = "italic";
+            thiscelltitle = "No 'good' peptide data series available. Using ALL peptide series, the estimated average half life (harmonic mean) is "+roundVal(t12estvalue,2)+"d" ;
+          }
+          cell.setAttribute( 'title', thiscelltitle);
         } else { cell.innerHTML = proteinrow[colname]; } // others like 'desc'
         row.appendChild(cell);
       });    
@@ -91,7 +145,6 @@ function proteinTableCreate() {
     // browser=browserChk(true);
     // if ( !( browser['isChrome'] || browser['isFirefox'] || browser['isIE'] || browser['isEdge'] || browser['isBlink'] )) {
     //   console.log('checked: not chrome, firefox, IE, edge, nor Blink');
-    //   // showFinalTable();
     // };
 
     tableCreated.resolve();
@@ -142,35 +195,26 @@ function showProteinChart(elm) {
   return null;
 }
 
-function applyFancyTable() {
-  // var fancyTableCreated = $.Deferred();
-  proteinTable = $("table#tbProtein").fancyTable({
-    sortColumn:1,
-    pagination: true,
-    perPage: 50,
-    globalSearch: true,
-    globalSearchExcludeColumns: [3,5,6,7]
-  });
-  // fancyTableCreated.resolve();
-  return;
-  // return fancyTableCreated.promise();
-}
-
 function pepListToggle(elm) {
-  var row = elm.parentNode;
+  // var row = elm.parentNode;
+  var row = elm;
   var tdPepList = row.querySelector("div.peptideList");
+  var tdPepN = row.querySelector("div.peptideN");
   var curStatus = tdPepList.style.display;
   if (curStatus==="none") { 
+    $("td > div.peptideN").show();
     $("td > div.peptideList").hide();
     tdPepList.style.display = "block"; 
-  } else {
-    tdPepList.style.display = "none"; 
+    tdPepN.style.display="none";
+  } else { // curStatus=="block"
+    $("td > div.peptideN").show();
+    $("td > div.peptideList").hide();
   }
   return null;
 }
 
 function showFinalTable() {
-  browser=browserChk(true);
+  browser=browserChk(false);
   if ( !( browser['isChrome'] || browser['isFirefox'] || browser['isIE'] || browser['isEdge'] || browser['isBlink'] )) {
     console.log('checked: not chrome, firefox, IE, edge, nor Blink');
     return null;
@@ -182,4 +226,3 @@ function showFinalTable() {
   t2.style.display = 'block';
   return null;
 }
-
