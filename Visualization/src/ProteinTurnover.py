@@ -40,13 +40,14 @@ class ProteinTurnover:
     self.__modelTypes = ("CFit",) # use only Curve-fit, 20230713
     # self.__modelTypes = ("LnLM1", "LnLM2", "CFit") # trying three different models in ExpoDecayFit: LnLM1 (sklearn LM), LnLM2 (statsmodels LM), CFit (scipy curve_fit)
 
-    self.__compoIndexPeptide = ['Protein', 'Peptide'] # basic composite index used in Peptide and related DFs
-    self.__compoIndexGene = ['Protein', 'Gene_x'] # basic composite index used in other dfs.
+    self.__compoIndexPeptide = ('Protein', 'Peptide') # basic composite index used in Peptide and related DFs
+    self.__compoIndexGene = ('Protein', 'Gene_x') # basic composite index used in other dfs.
     self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be plotted
     self.__supportMin = len(self.__xvalues) - self.__maxNAcnt
     self.__r2cutoff = 0.8 # set lower bound for r-square to be plotted
     self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
     self.__ingestData(filepath=filepath) # set df_Peptides
+    self.df_Proteins = None # after all calcuations done, prepare for protein half life chart 
     return
   
   def __ingestData(self, filepath):
@@ -88,37 +89,60 @@ class ProteinTurnover:
     Args:
         format (str, optional): _description_. Defaults to 'json'.
     """
-    filename = filename if filename else "results"
-    df = self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1) # do not keep the time data, just prtn, gene, desc, bs, t12s, r2s.
+    filename = filename if filename else "result"
     if format=='csv': 
-      df.to_csv(filename+".csv")
+      self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1).to_csv(os.path.join("../data/",filename+"_peptides.csv"))
+      self.df_Proteins.to_csv(os.path.join("../data/",filename+"_protein.csv"))
       return
     
     # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
-    pepCol = 'peptides' # new column name for all peptide info per gene, for web json
     newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
     # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
-    # [ v for i,v in newd.items() ]
+    df = self.df_Peptides.copy()
+    df.reset_index(inplace=True)
+    df.rename(newHeaders, axis=1, inplace=True)
+    
+    print(f'resulting results has dim: {df.shape}')
+    print(df.head(2))
+    df.to_json( os.path.join("../data/",filename+"_protein.json"), orient="records")
+    return
+  
+  def setDfProtein(self):
+    """
+    Generate df_Protein dataframe after all results were obtained. 
+    df_Protein will have structure that supports the web data 
+    """
+    df = self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1) # do not keep the time data, just prtn, gene, desc, bs, t12s, r2s.
+    
+    pepCol = 'peptides' # new column name for all peptide info per gene, for web json
+    # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
     statsHeaders = { s: [ s+'_'+m for m in self.__modelTypes ] for s in self.__statsTypes } # the stats metrics that we look for, in particular, b-decay constant, and t12-halfLife #  'b_LnLM1', 'b_LnLM2', 'b_CFit' #  't12_LnLM1', 't12_LnLM2', 't12_CFit' # 'r2_LnLM1', 'r2_LnLM2', 'r2_CFit'
     modelMetricHeaders = sum( statsHeaders.values(), [])  #  'b_LnLM1', 'b_LnLM2', ... 't12_LnLM1' ... 'r2_CFit'
     colHeads = [ self.__compoIndexPeptide[1] ]+modelMetricHeaders + ['support'] # add 'Peptide' column (in df_Peptides) to the modelMetricHeaders, plus others
 
     df.reset_index(inplace=True)
-    df.rename(newHeaders, axis=1, inplace=True)
-    df_gb = df.groupby( list(newHeaders.values()), as_index=True, dropna=False)  # groupby object
-    # df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
-    # df_res[statsHeaders['t12']] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives.
-    df_res = df_gb[["proteinT12","proteinT12est"]].agg('mean')  # this is not fastest. Mean is already calculated
-    # df_res["proteinT12est"] = df_gb["proteinT12est"].agg('mean')  # this is not fastest. Mean is already calculated
+    # df.rename(newHeaders, axis=1, inplace=True)
+    df_gb = df.groupby( list(self.__compoIndexGene + ('Protein_Description',)), as_index=True, dropna=False)  # groupby object
+    df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
+    df_res[ [ t+'_all' for t in statsHeaders['t12'] ] ] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives, using all peptides
+    df_res.rename( { 'b_'+m : 'b_'+m+'_all' for m in self.__modelTypes } , axis=1, inplace=True) # rename b_CFit to b_CFit_all, etc
+    
+    # the good peptides only
+    df_res[ [ b+'_pass' for b in statsHeaders['b'] ] ]  = df_gb.apply(lambda x: x[x['chart']>0][statsHeaders['b']].mean()) # find mean of only the good/passed peptides
+    df_res[ [ t+'_pass' for t in statsHeaders['t12'] ] ] = np.log(2)/df_res[ [ b+'_pass' for b in statsHeaders['b'] ]  ]  # next corresponding half lives
+
     df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
-    print(f'resulting results has dim: {df_res.shape}')
-    print(df_res.head(2))
-    df_res.reset_index(inplace=True)
-    df_res.to_json(filename+".json", orient="records")
+    
+    self.df_Proteins = df_res.set_index(self.__compoIndexGene)
+    # print(f'resulting results has dim: {df_res.shape}')
+    # print(df_res.head(2))
+    # df_res.reset_index(inplace=True)
+    # df_res.to_json(filename+".json", orient="records")
+
     return
-  
+    
   def chkDfPeptidesIndexUnique(self): 
     # print(f'df_Peptides composite index ({", ".join( self.df_Peptides.index.names )}) is unique? {self.df_Peptides.index.is_unique}') 
     return self.df_Peptides.index.is_unique
@@ -458,70 +482,72 @@ class ProteinTurnover:
       df.loc[:,'proteinT12'] = proteinT12
       self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = proteinT12 # also need to update df_Peptides
       
-      startx, sampleN = 0, 300 # match these with ExpoDecayFit parameters
-      maxx = round( min( max(6, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
-      samplexs = np.linspace(start=startx, stop=maxx, num = sampleN)
-      sampleys = 100 * np.exp(-b*samplexs)
-      symbol = 'circle'
-      colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
-      # cpalette = px.colors.qualitative.Dark24
-      # colorCnt, incr = 0, 2
-      fig = go.Figure()
+    return # no longer need to get protein level chart (2023-07-19)
+  
+    #   startx, sampleN = 0, 300 # match these with ExpoDecayFit parameters
+    #   maxx = round( min( max(6, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
+    #   samplexs = np.linspace(start=startx, stop=maxx, num = sampleN)
+    #   sampleys = 100 * np.exp(-b*samplexs)
+    #   symbol = 'circle'
+    #   colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
+    #   # cpalette = px.colors.qualitative.Dark24
+    #   # colorCnt, incr = 0, 2
+    #   fig = go.Figure()
       
-      # graph light series
-      # curve fit
-      markeropt = dict(color=colors['light'], symbol=symbol, size=2)
-      specs = dict(mode='lines', name='Light data (degradation)', showlegend=True, connectgaps=True, legendgroup = 'light')
-      fig = self.__add1goTrace(fig, x=samplexs, y=sampleys, specs=specs, markeropt=markeropt )
-      # data points
-      markeropt = dict(color=colors['light'], symbol=symbol, size=4)
-      specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
-      xs = [0] + [ int(x) for x in self.__xvalues ]
-      ys = 100*df[['0']+self.__xvalues].mean()
-      fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
-      # graph heavy series
-      # curve fit
-      markeropt = dict(color=colors['heavy'], symbol=symbol, size=2)
-      specs = dict(mode='lines', name='Heavy data (synthesis)', showlegend=True, connectgaps=True, legendgroup = 'heavy')
-      fig = self.__add1goTrace(fig, x=samplexs, y=100-sampleys, specs=specs, markeropt=markeropt )
-      # data points
-      markeropt = dict(color=colors['heavy'], symbol=symbol, size=4)
-      specs = dict(mode='markers', name='Heavy data (synthesis)', showlegend=False, connectgaps=False, legendgroup = 'heavy')
-      fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt)
+    #   # graph light series
+    #   # curve fit
+    #   markeropt = dict(color=colors['light'], symbol=symbol, size=2)
+    #   specs = dict(mode='lines', name='Light data (degradation)', showlegend=True, connectgaps=True, legendgroup = 'light')
+    #   fig = self.__add1goTrace(fig, x=samplexs, y=sampleys, specs=specs, markeropt=markeropt )
+    #   # data points
+    #   markeropt = dict(color=colors['light'], symbol=symbol, size=4)
+    #   specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
+    #   xs = [0] + [ int(x) for x in self.__xvalues ]
+    #   ys = 100*df[['0']+self.__xvalues].mean()
+    #   fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
+    #   # graph heavy series
+    #   # curve fit
+    #   markeropt = dict(color=colors['heavy'], symbol=symbol, size=2)
+    #   specs = dict(mode='lines', name='Heavy data (synthesis)', showlegend=True, connectgaps=True, legendgroup = 'heavy')
+    #   fig = self.__add1goTrace(fig, x=samplexs, y=100-sampleys, specs=specs, markeropt=markeropt )
+    #   # data points
+    #   markeropt = dict(color=colors['heavy'], symbol=symbol, size=4)
+    #   specs = dict(mode='markers', name='Heavy data (synthesis)', showlegend=False, connectgaps=False, legendgroup = 'heavy')
+    #   fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt)
 
-      if len(fig.data) < 1 : return #  if nothing showing, skip
+    #   if len(fig.data) < 1 : return #  if nothing showing, skip
 
-      # show half life if within range
-      if proteinT12 < maxx: fig.add_vline(x=proteinT12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(proteinT12.__round__(2)), annotation_position='bottom right')
+    #   # show half life if within range
+    #   if proteinT12 < maxx: fig.add_vline(x=proteinT12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(proteinT12.__round__(2)), annotation_position='bottom right')
       
-      fig.update_layout( 
-        title={
-          'text': labels['title'],
-          'x': 0.45,
-          'xanchor': 'center'
-          }, 
-        xaxis_title=labels['x'], 
-        yaxis_title=labels['y'],
-        legend_title="Data vs Model",
-        legend_tracegroupgap=4,
-        font=dict(
-            family=labels['fontfamily'],
-            size=labels['size'],
-            color="Black" # "RebeccaPurple"
-        ), 
-        legend=legendopt
-      )
+    #   fig.update_layout( 
+    #     title={
+    #       'text': labels['title'],
+    #       'x': 0.45,
+    #       'xanchor': 'center'
+    #       }, 
+    #     xaxis_title=labels['x'], 
+    #     yaxis_title=labels['y'],
+    #     legend_title="Data vs Model",
+    #     legend_tracegroupgap=4,
+    #     font=dict(
+    #         family=labels['fontfamily'],
+    #         size=labels['size'],
+    #         color="Black" # "RebeccaPurple"
+    #     ), 
+    #     legend=legendopt
+    #   )
       
-      proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
+    #   proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
       
-      if saveFigOpts['savePlot']: 
-        options = saveFigOpts.copy() 
-        options['folder'] += 'htmls/proteins/'
-        self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
-      if saveFigOpts['showPlot']: fig.show()
+    #   if saveFigOpts['savePlot']: 
+    #     options = saveFigOpts.copy() 
+    #     options['folder'] += 'htmls/proteins/'
+    #     self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
+    #   if saveFigOpts['showPlot']: fig.show()
       
-      return fig
-    return
+    #   return fig
+    # return
   
   def abundancePlot1Pg(self, prtnGrp, labels=dict(), saveFigOpts = dict() ):
     """
@@ -584,7 +610,15 @@ class ProteinTurnover:
       if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
       plotmax -= 1 # in/out
-      
+    
+    # in the end, sort 
+    self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
+    self.df_Peptides['r2_sort']=self.df_Peptides['chart_sort']*self.df_Peptides['r2_CFit'] # for sorting only
+    self.df_Peptides.sort_values(by=['Gene_x','chart_sort','r2_sort','support','Peptide'], ascending=[True, False, False, False, True], inplace=True)
+    del(self.df_Peptides['chart_sort','r2_sort'])
+    
+    self.setDfProtein() # set df_Protein 
+    
     return
   
 
