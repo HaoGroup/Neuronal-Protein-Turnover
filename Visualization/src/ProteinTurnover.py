@@ -40,8 +40,8 @@ class ProteinTurnover:
     self.__modelTypes = ("CFit",) # use only Curve-fit, 20230713
     # self.__modelTypes = ("LnLM1", "LnLM2", "CFit") # trying three different models in ExpoDecayFit: LnLM1 (sklearn LM), LnLM2 (statsmodels LM), CFit (scipy curve_fit)
 
-    self.__compoIndexPeptide = ('Protein', 'Peptide') # basic composite index used in Peptide and related DFs
-    self.__compoIndexGene = ('Protein', 'Gene_x') # basic composite index used in other dfs.
+    self.__compoIndexPeptide = ['Protein', 'Peptide'] # basic composite index used in Peptide and related DFs
+    self.__compoIndexGene = ['Protein', 'Gene_x'] # basic composite index used in other dfs.
     self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be plotted
     self.__supportMin = len(self.__xvalues) - self.__maxNAcnt
     self.__r2cutoff = 0.8 # set lower bound for r-square to be plotted
@@ -594,7 +594,7 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    plotmax = 12 # in/out
+    plotmax = 6 # in/out
     # for prtnGrp in self.PgList:
     #
     # Need to get list of (protein,gene) 
