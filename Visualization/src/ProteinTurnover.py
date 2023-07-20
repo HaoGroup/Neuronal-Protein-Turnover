@@ -122,7 +122,7 @@ class ProteinTurnover:
 
     df.reset_index(inplace=True)
     # df.rename(newHeaders, axis=1, inplace=True)
-    df_gb = df.groupby( list(self.__compoIndexGene + ('Protein_Description',)), as_index=True, dropna=False)  # groupby object
+    df_gb = df.groupby( list(self.__compoIndexGene + ['Protein_Description'] ), as_index=True, dropna=False)  # groupby object
     df_res = df_gb[statsHeaders['b']].agg('mean')  # first find mean b-values decay constants
     df_res[ [ t+'_all' for t in statsHeaders['t12'] ] ] = np.log(2)/df_res[statsHeaders['b']]  # next find half lives from bs. Essentially, we are finding the harmonic mean of half lives, using all peptides
     df_res.rename( { 'b_'+m : 'b_'+m+'_all' for m in self.__modelTypes } , axis=1, inplace=True) # rename b_CFit to b_CFit_all, etc
@@ -135,11 +135,6 @@ class ProteinTurnover:
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
     
-    self.df_Proteins = df_res.set_index(self.__compoIndexGene)
-    # print(f'resulting results has dim: {df_res.shape}')
-    # print(df_res.head(2))
-    # df_res.reset_index(inplace=True)
-    # df_res.to_json(filename+".json", orient="records")
 
     return
     
@@ -577,9 +572,10 @@ class ProteinTurnover:
     # chart = 0 or 1, as well as b, t12, and r2 values in df are modified by abundancePlotAllPeptides function
     
     # Now plot protein level average with trendline
-    df = self.df_Peptides.loc[prtnGrp[0],:] # df most likely have changed by abundancePlotAllPeptides 
-    labels['title'] = f'Protein level: {gene}' 
-    _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+    # no longer making protein level plots 20230719
+    # df = self.df_Peptides.loc[prtnGrp[0],:] # df most likely have changed by abundancePlotAllPeptides 
+    # labels['title'] = f'Protein level: {gene}' 
+    # _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
 
     return 
   
@@ -615,7 +611,8 @@ class ProteinTurnover:
     self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
     self.df_Peptides['r2_sort']=self.df_Peptides['chart_sort']*self.df_Peptides['r2_CFit'] # for sorting only
     self.df_Peptides.sort_values(by=['Gene_x','chart_sort','r2_sort','support','Peptide'], ascending=[True, False, False, False, True], inplace=True)
-    del(self.df_Peptides['chart_sort','r2_sort'])
+    del(self.df_Peptides['chart_sort'])
+    del(self.df_Peptides['r2_sort'])
     
     self.setDfProtein() # set df_Protein 
     
