@@ -443,42 +443,42 @@ class ProteinTurnover:
     fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
     return
       
-  def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendopt=dict(), yerroropt=dict() ):
-    """
-    Args:
-        df (Dataframe): Pandas pivot table df
-        trendlines (dict, optional): show, solid (bool), color (str), width (float) 
-        lines (dict, optional): show, solid (bool), color (str), width (float) 
-        markers (dict, optional): show (bool), symbol (str), size (float) 
-    return: plotly graph object GO
-    """
-    labels = self.__setArgLabels(labels=labels)
-    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    legendopt = self.__setArgLegendopt(legendopt=legendopt)
-    # yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
-    # lines = self.__setArgLines(lines=lines)
-    # trendlines = self.__setArgTrendlines(trendlines=trendlines)
-    # markers = self.__setArgMarkers(markers=markers)
-    proteinT12, proteinT12est = np.nan, np.nan
-    # 
-    # Prep the data
-    # with all peptide data, regardless good/bad
-    if df.shape[0] > 0: proteinT12est = np.log(2)/ df[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
-    df.loc[:,'proteinT12est'] = proteinT12est 
-    self.df_Peptides.loc[ prtnGrp[0], 'proteinT12est'] = proteinT12est # also need to update df_Peptides
+  # def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendopt=dict(), yerroropt=dict() ):
+  #   """
+  #   Args:
+  #       df (Dataframe): Pandas pivot table df
+  #       trendlines (dict, optional): show, solid (bool), color (str), width (float) 
+  #       lines (dict, optional): show, solid (bool), color (str), width (float) 
+  #       markers (dict, optional): show (bool), symbol (str), size (float) 
+  #   return: plotly graph object GO
+  #   """
+  #   labels = self.__setArgLabels(labels=labels)
+  #   saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+  #   legendopt = self.__setArgLegendopt(legendopt=legendopt)
+  #   # yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
+  #   # lines = self.__setArgLines(lines=lines)
+  #   # trendlines = self.__setArgTrendlines(trendlines=trendlines)
+  #   # markers = self.__setArgMarkers(markers=markers)
+  #   proteinT12, proteinT12est = np.nan, np.nan
+  #   # 
+  #   # Prep the data
+  #   # with all peptide data, regardless good/bad
+  #   if df.shape[0] > 0: proteinT12est = np.log(2)/ df[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
+  #   df.loc[:,'proteinT12est'] = proteinT12est 
+  #   self.df_Peptides.loc[ prtnGrp[0], 'proteinT12est'] = proteinT12est # also need to update df_Peptides
 
-    # filter only peptides with chart created. 
-    gooddf = df[ df['chart']>0 ]
-    if gooddf.shape[0] == 0: 
-      df.loc[:,'proteinT12'] = np.nan 
-      self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = np.nan 
-    else: # create chart as well
-      b = gooddf[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
-      proteinT12 = np.log(2)/b 
-      df.loc[:,'proteinT12'] = proteinT12
-      self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = proteinT12 # also need to update df_Peptides
+  #   # filter only peptides with chart created. 
+  #   gooddf = df[ df['chart']>0 ]
+  #   if gooddf.shape[0] == 0: 
+  #     df.loc[:,'proteinT12'] = np.nan 
+  #     self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = np.nan 
+  #   else: # create chart as well
+  #     b = gooddf[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
+  #     proteinT12 = np.log(2)/b 
+  #     df.loc[:,'proteinT12'] = proteinT12
+  #     self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = proteinT12 # also need to update df_Peptides
       
-    return # no longer need to get protein level chart (2023-07-19)
+  #   return # no longer need to get protein level chart (2023-07-19)
   
     #   startx, sampleN = 0, 300 # match these with ExpoDecayFit parameters
     #   maxx = round( min( max(6, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
