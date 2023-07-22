@@ -135,6 +135,7 @@ class ProteinTurnover:
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
     
+    self.df_Proteins = df_res.copy()
 
     return
     
@@ -603,9 +604,9 @@ class ProteinTurnover:
     df = self.df_Peptides.reset_index().loc[:, self.__compoIndexGene + ['chart']].groupby( self.__compoIndexGene , as_index=True, dropna=False)[['chart']].agg('sum')
     #
     for prtnGrp in df.index.values: # multi-level index with (protein, gene)
-      if plotmax == 0 : break # in/out
+      # if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      plotmax -= 1 # in/out
+      # plotmax -= 1 # in/out
     
     # in the end, sort 
     self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
@@ -628,8 +629,8 @@ file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiT
 pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
 #%%
-saveplot, showplot = False, True
-# saveplot, showplot = True, False
+# saveplot, showplot = False, True
+saveplot, showplot = True, False
 # saveplot, showplot = True, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
