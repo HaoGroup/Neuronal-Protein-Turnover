@@ -690,7 +690,7 @@ saveplot, showplot = False, False
 savePath = "../media/plots/"
 
 # pto.abundancePlotPgAll(savePlot=saveplot, saveFolder=savePath)
-# pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%
