@@ -47,9 +47,8 @@ class ProteinTurnover:
     self.__supportMin = len(self.__xvalues) - self.__maxNAcnt
     self.__r2cutoff = 0.8 # set lower bound for r-square to be plotted
     self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
-    self.__ingestData(filepath=filepath) 
-    # self.__setDfPeptides() # called inside __ingestData # set df_Peptides, including sorting
     self.df_Proteins = None # after all calcuations done, prepare for protein half life chart 
+    self.__ingestData(filepath=filepath) # self.__setDfPeptides(), # self.__setDfProteins() # called inside __ingestData # set df_Peptides, including sorting, and df_Proteins
     return
   
   def __ingestData(self, filepath) -> None:
@@ -668,7 +667,7 @@ saveplot, showplot = False, False
 savePath = "../media/plots/"
 
 # pto.abundancePlotPgAll(savePlot=saveplot, saveFolder=savePath)
-pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+# pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%
