@@ -180,7 +180,10 @@ class ProteinTurnover:
     # set one more column for protein plot, with t12_pass value if available, or else use t12_all
     df_res[ [t+'_best' for t in statsHeaders['t12']] ] = pd.isna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * df_res[ [t+'_all' for t in statsHeaders['t12']] ].values + pd.notna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * np.nan_to_num(df_res[[t+'_pass' for t in statsHeaders['t12']]])
     
-    self.df_Proteins = df_res
+    df_res.sort_values(by='t12_'+self.__modelTypes[0]+'_best').reset_index()
+    df_res['rank'] = df_res.index +1
+    
+    self.df_Proteins = df_res.set_index(self.__compoIndexGene)
 
     return
     
@@ -314,6 +317,11 @@ class ProteinTurnover:
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
+  def proteinHalflifeChart(self) -> None:
+    df = self.df_Proteins.drop(list(df.filter(regex = '_all')) + list(df.filter(regex = '_pass'))+ ['peptides', 'Protein_Description'] , axis = 1)
+    
+    return df
+  
   def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendopt=dict(), yerroropt=dict() ):
     """
     Add 1 trace to go.Figure object
@@ -372,11 +380,6 @@ class ProteinTurnover:
     bs, t12s, r2s = [ model.modelsummary.loc[t,:] for t in self.__statsTypes ]
     stats = dict( b=bs, t12=t12s, r2=r2s )
 
-    # save results in df_Peptides
-    for m in self.__modelTypes:
-      for s in self.__statsTypes:
-        self.df_Peptides.loc[( prtnGrp[0], peptide ), s+'_'+m] = stats[s][m]
-
     modelChoice = 'CFit' # pick one to plot here, if more than one available. ("LnLM1", "LnLM2", "CFit")
     ysamples = 100*model.sampleys[modelChoice]
     # xrange = round( min( max(6, 1.8*t12s[modelChoice]) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
@@ -385,9 +388,6 @@ class ProteinTurnover:
     # only if support > threshold, and r-square > cutoff, then show graph
     if ( thissupport < self.__supportMin or (stats['r2']<self.__r2cutoff).any() ) : return fig
     # if ( thissupport > self.__supportMin -1 and (stats['r2']>self.__r2cutoff).all() ) : self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ] = 1 # good condition
-    
-    # passed all tests, create peptide series plot
-    self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ] = 1
     
     # model lines
     specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='lines',  showlegend=False, legendgroup = peptide)
@@ -436,9 +436,6 @@ class ProteinTurnover:
     for peptide, row in df.iterrows():
       fig = self.abundancePlot1Peptide(fig=fig, peptiderow=row, prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendopt=legendopt )
       colorcnt += 1
-    # for peptide in peptides: 
-    #   fig = self.abundancePlot1Peptide(fig=fig, df=df[[peptide]], prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendopt=legendopt )
-    #   colorcnt += 1
     
     if len(fig.data) < 1 : return #  if nothing showing, skip
     
@@ -619,17 +616,12 @@ class ProteinTurnover:
     # df.columns = df.columns.droplevel(0) # remove column index ProteinGroup
     df = self.df_Peptides.loc[prtnGrp[0],:]
     
-    # REMOVE peptides with more than __maxNAcnt na values
-    # df = df.drop(columns=[col for col in df if df[col].isna().sum() > self.__maxNAcnt ]) # __maxNAcnt is set globally
-    # revised 20230714, check this in abundancePlot1Peptide
     if df.shape[0] < 1: return None # nothing to plot
     
     gene = prtnGrp[1] if type(prtnGrp[1]) == str else 'Protein Group: '+prtnGrp[0]
     
     labels['title'] = f'Peptide level: {gene}'
     _ = self.abundancePlotAllPeptides(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-    
-    # chart = 0 or 1, as well as b, t12, and r2 values in df are modified by abundancePlotAllPeptides function
     
     # Now plot protein level average with trendline
     # no longer making protein level plots 20230719
@@ -651,18 +643,8 @@ class ProteinTurnover:
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     plotmax = 6 # in/out
-    # for prtnGrp in self.PgList:
     #
-    # Need to get list of (protein,gene) 
-    # This method somehow is dropping the ones with NA description. Don't know why.
-    # compoIndexGene = self.__compoIndexGene
-    # dfp = pto.df_Peptides.reset_index()[compoIndexGene+['Protein_Description']].set_index(compoIndexGene).drop_duplicates()
-    #
-    # Use this groupby method (results in 28 more rows, 9883 vs 9855)
-    # 
-    df = self.df_Peptides.reset_index().loc[:, self.__compoIndexGene + ['chart']].groupby( self.__compoIndexGene , as_index=True, dropna=False)[['chart']].agg('sum')
-    #
-    for prtnGrp in df.index.values: # multi-level index with (protein, gene)
+    for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
       # if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
       # plotmax -= 1 # in/out
