@@ -2,6 +2,7 @@
 import pandas as pd
 import os
 import re
+import warnings
 import plotly.graph_objects as go
 # To export static images from go, need pip install -U kaleido
 import plotly.express as px
@@ -42,15 +43,16 @@ class ProteinTurnover:
 
     self.__compoIndexPeptide = ['Protein', 'Peptide'] # basic composite index used in Peptide and related DFs
     self.__compoIndexGene = ['Protein', 'Gene_x'] # basic composite index used in other dfs.
-    self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be plotted
+    self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be considered good peptide data
     self.__supportMin = len(self.__xvalues) - self.__maxNAcnt
     self.__r2cutoff = 0.8 # set lower bound for r-square to be plotted
     self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
-    self.__ingestData(filepath=filepath) # set df_Peptides
+    self.__ingestData(filepath=filepath) 
+    # self.__setDfPeptides() # called inside __ingestData # set df_Peptides, including sorting
     self.df_Proteins = None # after all calcuations done, prepare for protein half life chart 
     return
   
-  def __ingestData(self, filepath):
+  def __ingestData(self, filepath) -> None:
     """
     Args:
         filepath (_type_): the source file location. Use os to ensure right format
@@ -69,19 +71,52 @@ class ProteinTurnover:
     df.drop(list(df.filter(regex = 'Heavy_Relative_Abundance')), axis = 1, inplace = True)
     
     # import re  # rename columns as 0, 1, 2, 4, 6 for days
-    df.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)
-
-    self.df_Peptides = df.set_index(self.__compoIndexPeptide)  # set composite index and save
+    df.rename(columns=lambda x: re.sub(r'iMN_Day(\d).*_Relative_Abundance$', r'\1', x), inplace = True)    
+    self.__setDfPeptides(df_init=df)
+    self.__setDfProteins() # set df_Proteins when df_Peptides all set
     
+
+    return None
+  
+  def __setDfPeptides(self, df_init) -> None:
+    self.df_Peptides = df_init.set_index(self.__compoIndexPeptide)  # set composite index 
+    if not self.chkDfPeptidesIndexUnique(): warnings.warn(f"Warning: df_Peptides index ({self.__compoIndexPeptide}) not unique!!")
+
     self.df_Peptides['chart'] = 0 # keep track of whether the peptide has enough data points to make a plot. default to 0
     self.df_Peptides['support'] = len(self.__xvalues) -  self.df_Peptides[self.__xvalues].isna().sum(axis=1) # support is the number of non-NA data points for the peptide data
     newcols = [ s+'_'+m for s in self.__statsTypes for m in self.__modelTypes ] # for the modelcurve-fit statistics results
     # newcols += [ 'proteinT12', 'proteinT12est' ] # protein level half-lives, first one with only high quality data (at most one missing time data, and r^2 > cutoff of 0.8), second one with all data regardless. The t1/2 is calculated using the harmonic mean of the peptide t1/2s, or the regular mean of their decay constants.
     self.df_Peptides[newcols] = np.nan
-
-    if not self.chkDfPeptidesIndexUnique(): print("Protein Group in df_Peptides not unique")
     
-    return None
+    self.__setPeptidesStats() # get all peptides stats from ExpoDecayFits
+    
+    # sort them here once all t12, r2, and chart values are set
+    # need two temporary columns to help sort
+    self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
+    self.df_Peptides['r2_sort']=self.df_Peptides['chart_sort']*self.df_Peptides['r2_CFit'] # for sorting only
+    self.df_Peptides.sort_values(by=['Gene_x','chart_sort','r2_sort','support','Peptide'], ascending=[True, False, False, False, True], inplace=True)
+    del(self.df_Peptides['chart_sort'])
+    del(self.df_Peptides['r2_sort'])
+    
+    return
+  
+  def __setPeptidesStats(self) -> None:
+    self.df_Peptides.apply(self.__set1PeptideStats, axis = 1) # get 1 peptide stats from ExpoDecayFits
+    return
+  
+  def __set1PeptideStats(self, peptiderow) -> None:
+    thissupport = peptiderow['support']
+    proteinname, peptidename  = peptiderow.name
+    model = edf.ExpoDecayFit(peptiderow, xAxisName = self.__xAxisName, xvalues = self.__xvalues, modelTypes=self.__modelTypes, statsTypes=self.__statsTypes ) # model.startx, starty, samplexs, sampleys
+    bs, t12s, r2s = [ model.modelsummary.loc[t,:] for t in self.__statsTypes ]
+    stats = dict( b=bs, t12=t12s, r2=r2s )
+    if ( thissupport > self.__supportMin -1 and (stats['r2']>self.__r2cutoff).any() ) : self.df_Peptides.loc[ (proteinname, peptidename) , 'chart' ] = 1 # instead of .any, consider using .all instead. When multiple models are used, then critical
+    # save results in df_Peptides
+    for m in self.__modelTypes:
+      for s in self.__statsTypes:
+        self.df_Peptides.loc[( proteinname, peptidename ), s+'_'+m] = stats[s][m]
+    
+    return
   
   def exportResults(self, filename="", format='json'):
     """
@@ -107,10 +142,10 @@ class ProteinTurnover:
     df.to_json( os.path.join("../data/",filename+"_protein.json"), orient="records")
     return
   
-  def setDfProtein(self):
+  def __setDfProteins(self):
     """
-    Generate df_Protein dataframe after all results were obtained. 
-    df_Protein will have structure that supports the web data 
+    Generate df_Proteins dataframe after all results were obtained. 
+    df_Proteins will have structure that supports the web data 
     """
     df = self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1) # do not keep the time data, just prtn, gene, desc, bs, t12s, r2s.
     
@@ -138,7 +173,7 @@ class ProteinTurnover:
     # set one more column for protein plot, with t12_pass value if available, or else use t12_all
     df_res[ [t+'_best' for t in statsHeaders['t12']] ] = pd.isna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * df_res[ [t+'_all' for t in statsHeaders['t12']] ].values + pd.notna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * np.nan_to_num(df_res[[t+'_pass' for t in statsHeaders['t12']]])
     
-    self.df_Proteins = df_res.copy()
+    self.df_Proteins = df_res
 
     return
     
@@ -610,15 +645,9 @@ class ProteinTurnover:
       # if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
       # plotmax -= 1 # in/out
+
     
-    # in the end, sort 
-    self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
-    self.df_Peptides['r2_sort']=self.df_Peptides['chart_sort']*self.df_Peptides['r2_CFit'] # for sorting only
-    self.df_Peptides.sort_values(by=['Gene_x','chart_sort','r2_sort','support','Peptide'], ascending=[True, False, False, False, True], inplace=True)
-    del(self.df_Peptides['chart_sort'])
-    del(self.df_Peptides['r2_sort'])
-    
-    self.setDfProtein() # set df_Protein 
+    # self.__setDfProteins() # set df_Proteins 
     
     return
   
