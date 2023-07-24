@@ -180,7 +180,8 @@ class ProteinTurnover:
     # set one more column for protein plot, with t12_pass value if available, or else use t12_all
     df_res[ [t+'_best' for t in statsHeaders['t12']] ] = pd.isna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * df_res[ [t+'_all' for t in statsHeaders['t12']] ].values + pd.notna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * np.nan_to_num(df_res[[t+'_pass' for t in statsHeaders['t12']]])
     
-    df_res.sort_values(by='t12_'+self.__modelTypes[0]+'_best').reset_index()
+    df_res.sort_values(by='t12_'+self.__modelTypes[0]+'_best', inplace=True)
+    df_res.reset_index(inplace=True)
     df_res['rank'] = df_res.index +1
     
     self.df_Proteins = df_res.set_index(self.__compoIndexGene)
@@ -661,8 +662,8 @@ class ProteinTurnover:
 file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
-# pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
+pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
 
 #%%
 # saveplot, showplot = False, True
@@ -672,7 +673,7 @@ saveplot, showplot = False, False
 savePath = "../media/plots/"
 
 # pto.abundancePlotPgAll(savePlot=saveplot, saveFolder=savePath)
-pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+# pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%
