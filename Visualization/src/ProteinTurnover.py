@@ -76,7 +76,7 @@ class ProteinTurnover:
     self.df_Peptides['chart'] = 0 # keep track of whether the peptide has enough data points to make a plot. default to 0
     self.df_Peptides['support'] = len(self.__xvalues) -  self.df_Peptides[self.__xvalues].isna().sum(axis=1) # support is the number of non-NA data points for the peptide data
     newcols = [ s+'_'+m for s in self.__statsTypes for m in self.__modelTypes ] # for the modelcurve-fit statistics results
-    newcols += [ 'proteinT12', 'proteinT12est' ] # protein level half-lives, first one with only high quality data (at most one missing time data, and r^2 > cutoff of 0.8), second one with all data regardless. The t1/2 is calculated using the harmonic mean of the peptide t1/2s, or the regular mean of their decay constants.
+    # newcols += [ 'proteinT12', 'proteinT12est' ] # protein level half-lives, first one with only high quality data (at most one missing time data, and r^2 > cutoff of 0.8), second one with all data regardless. The t1/2 is calculated using the harmonic mean of the peptide t1/2s, or the regular mean of their decay constants.
     self.df_Peptides[newcols] = np.nan
 
     if not self.chkDfPeptidesIndexUnique(): print("Protein Group in df_Peptides not unique")
@@ -134,6 +134,9 @@ class ProteinTurnover:
     df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
     # next, get list of peptides and their metrics from different models into a dict()
     df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
+    
+    # set one more column for protein plot, with t12_pass value if available, or else use t12_all
+    df_res[ [t+'_best' for t in statsHeaders['t12']] ] = pd.isna(df_res[[t+'_pass' for t in statsHeaders['t12']]])*df_res[ [t+'_all' for t in statsHeaders['t12']] ]+pd.notna(df_res[[t+'_pass' for t in statsHeaders['t12']]])*np.nan_to_num(df_res[[t+'_pass' for t in statsHeaders['t12']]])
     
     self.df_Proteins = df_res.copy()
 
@@ -604,9 +607,9 @@ class ProteinTurnover:
     df = self.df_Peptides.reset_index().loc[:, self.__compoIndexGene + ['chart']].groupby( self.__compoIndexGene , as_index=True, dropna=False)[['chart']].agg('sum')
     #
     for prtnGrp in df.index.values: # multi-level index with (protein, gene)
-      # if plotmax == 0 : break # in/out
+      if plotmax == 0 : break # in/out
       self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      # plotmax -= 1 # in/out
+      plotmax -= 1 # in/out
     
     # in the end, sort 
     self.df_Peptides['chart_sort']=self.df_Peptides['chart']+np.around(self.df_Peptides['support']/2) - 1 # from 0,1 becomes 0,1,2 for sorting only
@@ -629,8 +632,8 @@ file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiT
 pto = ProteinTurnover(filepath= file)
 # pto.chkDfPgIndexUnique()
 #%%
-# saveplot, showplot = False, True
-saveplot, showplot = True, False
+saveplot, showplot = False, True
+# saveplot, showplot = True, False
 # saveplot, showplot = True, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
