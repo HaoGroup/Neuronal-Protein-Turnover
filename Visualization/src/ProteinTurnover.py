@@ -318,10 +318,17 @@ class ProteinTurnover:
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
-  def proteinHalflifeChart(self) -> None:
-    df = self.df_Proteins.drop(list(df.filter(regex = '_all')) + list(df.filter(regex = '_pass'))+ ['peptides', 'Protein_Description'] , axis = 1)
+  def proteinHalflifeChart(self):# -> None:
+    d = self.df_Proteins
+    df = d.drop(list(d.filter(regex = '(_all|_pass)')) + ['peptides', 'Protein_Description'] , axis = 1)
+    df.plot(x="rank", y="t12_"+self.__modelTypes[0]+"_best")
+    fig = go.Figure()
+    fig = df.apply(self.__singleProteinDatumPlot, fig)
     
     return df
+  
+  def __singleProteinDatumPlot(self, proteinrow, fig):
+    return fig
   
   def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendopt=dict(), yerroropt=dict() ):
     """
@@ -659,11 +666,11 @@ class ProteinTurnover:
 #%%
 # file = os.path.join(os.getcwd(), "../data/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
 # file = os.path.join(os.getcwd(), "../data/20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
-file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
-pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
 
 #%%
 # saveplot, showplot = False, True
