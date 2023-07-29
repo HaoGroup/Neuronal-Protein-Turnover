@@ -44,6 +44,9 @@ class ProteinTurnover:
     self.__maxNAcnt = 1 # Each series only has at most 4 data points at day = 1,2,4,6.  Only allow at most 1 missing to be considered good peptide data
     self.__supportMin = len(self.__xvalues) - self.__maxNAcnt
     self.__r2cutoff = 0.8 # set lower bound for r-square to be plotted
+    self.__colorPalette = px.colors.qualitative.Dark24 
+    self.__colorMax = len(self.__colorPalette)
+    self.__colorInd = 0 # initialize
     self.df_Peptides = None # initialize, cleaned and re-structured df for analysis ['PG.ProteinGroups', 'PG.Genes', 'PG.ProteinDescriptions', 'Peptide', 0, 1, 2, 4, 6, 'k_results', 'Protein_Turnover_from_k', 'residuals']
     self.df_Proteins = None # after all calcuations done, prepare for protein half life chart 
     self.__ingestData(datafiles=datafiles) # self.__setDfPeptides(), # self.__setDfProteins() # called inside __ingestData # set df_Peptides, including sorting, and df_Proteins
@@ -188,9 +191,11 @@ class ProteinTurnover:
 
     return
     
-  def chkDfPeptidesIndexUnique(self): 
-    # print(f'df_Peptides composite index ({", ".join( self.df_Peptides.index.names )}) is unique? {self.df_Peptides.index.is_unique}') 
-    return self.df_Peptides.index.is_unique
+  def chkDfPeptidesIndexUnique(self): return self.df_Peptides.index.is_unique
+  
+  def __setNextColorInd(self, n=1) -> None:
+    self.__colorInd = (self.__colorInd + n) % self.__colorMax
+    return
   
   def __setArgDatafiles(self, datafiles=dict(raw=None,peptides=None, proteins=None) ):
     """
@@ -251,15 +256,15 @@ class ProteinTurnover:
     res['size'] = res['size'] if (res.__contains__('size') and res['size']) else 4
     return res
   
-  def __setArgLegendopt(self, legendopt=dict(title_font_family=None, font=dict(size=None)) ):
+  def __setArglegendOpts(self, legendOpts=dict(title_font_family=None, font=dict(size=None)) ):
     """
     setting generic keyword argument legend with title_font_family, size
     Args:
-        legendopt (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
+        legendOpts (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
     Returns:
         dict: { title_font_family, font, ... }
     """
-    res = legendopt.copy()
+    res = legendOpts.copy()
     res['title_font_family'] = res['title_font_family'] if (res.__contains__('title_font_family') and res['title_font_family']) else 'Garamond'
     res['font'] = res['font'] if (res.__contains__('font') and res['font']) else dict(size=8)
     res['font']['size'] = res['font']['size'] if (res['font'].__contains__('size') and res['font']['size']>0) else 7
@@ -330,7 +335,7 @@ class ProteinTurnover:
   def __singleProteinDatumPlot(self, proteinrow, fig):
     return fig
   
-  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendopt=dict(), yerroropt=dict() ):
+  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict(), yerroropt=dict() ):
     """
     Add 1 trace to go.Figure object
     Args:
@@ -359,10 +364,10 @@ class ProteinTurnover:
     else: # add more conditions/scenarios here if needed
       fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
       
-    # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendopt )
+    # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendOpts )
     return fig
   
-  def abundancePlot1Peptide(self, fig, peptiderow, prtnGrp, peptide, lineopt=dict(), markeropt=dict(), legendopt=dict()):
+  def abundancePlot1Peptide(self, peptiderow, fig, prtnGrp, markeropt=dict()):
     """
     Create curve fitting for each peptide, find the decay constant, half life, and r-squared; update the results table, and create plot if applicable
     Args:
@@ -372,14 +377,15 @@ class ProteinTurnover:
         peptide (str): Peptide name
         lineopt (dict, optional): show, solid (bool), color (str), width (float) 
         markeropt (dict, optional): show (bool), symbol (str), size (float) 
-        legendopt (dict, optional): legendgroup (str), title_font_family (str), font (dict),...
+        legendOpts (dict, optional): legendgroup (str), title_font_family (str), font (dict),...
     Return: 
         plotly graph object GO
     """
-    lineopt = self.__setArgLineopt(lineopt=lineopt)
+    peptide = peptiderow.name
+    lineopt = self.__setArgLineopt(lineopt=dict( color=self.__colorPalette[ self.__colorInd ], width=2))
     markeropt = self.__setArgMarkeropt(markeropt=markeropt)
     markeropt['color'] = lineopt['color']
-    legendopt = self.__setArgLegendopt(legendopt=legendopt)
+    # legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
     thissupport = self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'support' ]
     
     # Use ExpoDecayFit module
@@ -394,13 +400,13 @@ class ProteinTurnover:
     
     # Next, determine if eligible to make graph, update chart value for this peptide
     # only if support > threshold, and r-square > cutoff, then show graph
-    if ( thissupport < self.__supportMin or (stats['r2']<self.__r2cutoff).any() ) : return fig
+    if ( thissupport < self.__supportMin or (stats['r2']<self.__r2cutoff).any() ) : return # fig
     # if ( thissupport > self.__supportMin -1 and (stats['r2']>self.__r2cutoff).all() ) : self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ] = 1 # good condition
     
     # model lines
     specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='lines',  showlegend=False, legendgroup = peptide)
     markeropt['size'] = 2
-    # legendopt['showlegend'] = True 
+    # legendOpts['showlegend'] = True 
     specs['showlegend'] = True 
     fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
     # fig = self.__add1goTrace(fig, x=tuple(model.samplexs)+(np.nan,)+tuple(model.samplexs ), y=tuple(ysamples)+(np.nan,)+tuple(100-ysamples) , specs=specs, lineopt=lineopt, markeropt=markeropt )
@@ -421,59 +427,62 @@ class ProteinTurnover:
     
     # fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
     
-    return fig
+    self.__setNextColorInd()
+    
+    return # fig
   
-  def abundancePlotAllPeptides(self, df, prtnGrp, labels=dict(), saveFigOpts=dict(), legendopt=dict() ):
-    """
-    Args:
-        df (Dataframe): Pandas df_Peptide filtered df for one protein
-        prtnGrp (tuple): Protein-Gene index
-        labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-        lines (dict, optional): show, solid (bool), color (str), width (float) 
-        markers (dict, optional): show (bool), symbol (str), size (float) 
-    return: plotly graph object GO
-    """    
-    labels = self.__setArgLabels(labels=labels)
-    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    legendopt = self.__setArgLegendopt(legendopt=legendopt)
+  # def abundancePlotAllPeptides(self, df, prtnGrp, labels=dict(), saveFigOpts=dict(), legendOpts=dict() ):
+  #   """
+  #   Args:
+  #       df (Dataframe): Pandas df_Peptide filtered df for one protein
+  #       prtnGrp (tuple): Protein-Gene index
+  #       labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
+  #       lines (dict, optional): show, solid (bool), color (str), width (float) 
+  #       markers (dict, optional): show (bool), symbol (str), size (float) 
+        
+  #   return: plotly graph object GO
+  #   """    
+  #   labels = self.__setArgLabels(labels=labels)
+  #   saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+  #   legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
 
-    cpalette = px.colors.qualitative.Dark24  # trendline use '#00FE35', which is Light24[1] color, lime green
-    colorcnt = 0 # initialize # can consider making this global if a random start is preferred.
-    colorcntmax = len(cpalette)    
-    fig = go.Figure()
-    for peptide, row in df.iterrows():
-      fig = self.abundancePlot1Peptide(fig=fig, peptiderow=row, prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendopt=legendopt )
-      colorcnt += 1
+  #   cpalette = px.colors.qualitative.Dark24  # trendline use '#00FE35', which is Light24[1] color, lime green
+  #   colorcnt = 0 # initialize # can consider making this global if a random start is preferred.
+  #   colorcntmax = len(cpalette)    
+  #   fig = go.Figure()
+  #   for peptide, row in df.iterrows():
+  #     fig = self.abundancePlot1Peptide(fig=fig, peptiderow=row, prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendOpts=legendOpts )
+  #     colorcnt += 1
     
-    if len(fig.data) < 1 : return #  if nothing showing, skip
+  #   if len(fig.data) < 1 : return #  if nothing showing, skip
     
-    fig.update_layout( 
-      title={
-        'text': labels['title'],
-        'x': 0.45,
-        'xanchor': 'center'
-        }, 
-      xaxis_title=labels['x'], 
-      yaxis_title=labels['y'],
-      legend_title="Peptide",
-      legend_tracegroupgap=1, 
-      font=dict(
-          family=labels['fontfamily'],
-          size=labels['size'],
-          color="Black" # "RebeccaPurple"
-      ),
-      legend=legendopt
-    )
+  #   fig.update_layout( 
+  #     title={
+  #       'text': labels['title'],
+  #       'x': 0.45,
+  #       'xanchor': 'center'
+  #       }, 
+  #     xaxis_title=labels['x'], 
+  #     yaxis_title=labels['y'],
+  #     legend_title="Peptide",
+  #     legend_tracegroupgap=1, 
+  #     font=dict(
+  #         family=labels['fontfamily'],
+  #         size=labels['size'],
+  #         color="Black" # "RebeccaPurple"
+  #     ),
+  #     legend=legendOpts
+  #   )
     
-    proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
+  #   proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
     
-    if saveFigOpts['savePlot']:
-      options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/peptides/'
-      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
-    if saveFigOpts['showPlot']: fig.show()
+  #   if saveFigOpts['savePlot']:
+  #     options = saveFigOpts.copy() 
+  #     options['folder'] += 'htmls/peptides/'
+  #     self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
+  #   if saveFigOpts['showPlot']: fig.show()
     
-    return fig
+  #   return fig
   
   def __savePlot(self, saveFigOpts, fig, filename):
     """
@@ -507,7 +516,7 @@ class ProteinTurnover:
     fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
     return
       
-  # def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendopt=dict(), yerroropt=dict() ):
+  # def abundancePlotProteinLevel(self, df, prtnGrp, labels=dict(), saveFigOpts = dict(), legendOpts=dict(), yerroropt=dict() ):
   #   """
   #   Args:
   #       df (Dataframe): Pandas pivot table df
@@ -518,7 +527,7 @@ class ProteinTurnover:
   #   """
   #   labels = self.__setArgLabels(labels=labels)
   #   saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-  #   legendopt = self.__setArgLegendopt(legendopt=legendopt)
+  #   legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
   #   # yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
   #   # lines = self.__setArgLines(lines=lines)
   #   # trendlines = self.__setArgTrendlines(trendlines=trendlines)
@@ -595,7 +604,7 @@ class ProteinTurnover:
     #         size=labels['size'],
     #         color="Black" # "RebeccaPurple"
     #     ), 
-    #     legend=legendopt
+    #     legend=legendOpts
     #   )
       
     #   proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
@@ -609,33 +618,65 @@ class ProteinTurnover:
     #   return fig
     # return
   
-  def abundancePlot1Pg(self, prtnGrp, labels=dict(), saveFigOpts = dict() ):
+  def abundancePlot1Pg(self, prtnrow, labels=dict(), saveFigOpts = dict(), legendOpts=dict()  ):
     """
     Args:
         prtnGrp (tuple): the (ProteinGrp, Gene) being processed
         labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
         saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
+        legendOpts (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
     return: None
     """
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+    legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)    
+
+    df1prtn = self.df_Peptides.loc[prtnrow.name[0],:] # subset only the protein info in df_Peptides
     
-    # df = self.df_PgPivot[[prtnGrp[0]]] # filter only one prtnGrp, can have multiple peptides, 
-    # df.columns = df.columns.droplevel(0) # remove column index ProteinGroup
-    df = self.df_Peptides.loc[prtnGrp[0],:]
-    
-    if df.shape[0] < 1: return None # nothing to plot
-    
-    gene = prtnGrp[1] if type(prtnGrp[1]) == str else 'Protein Group: '+prtnGrp[0]
+    if df1prtn.shape[0] < 1: return None # nothing to plot
+    # prtnrow.name = ('Protein', 'Gene_x')
+    gene = prtnrow.name[1] if type(prtnrow.name[1]) == str else 'Protein Group: '+prtnrow.name[0]
     
     labels['title'] = f'Peptide level: {gene}'
-    _ = self.abundancePlotAllPeptides(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+    # cpalette = self.__colorPalette # trendline use '#00FE35', which is Light24[1] color, lime green
+    fig = go.Figure()    
     
+    df1prtn.apply(self.abundancePlot1Peptide, fig=fig, prtnGrp=prtnrow.name, axis=1 )
+    # _ = self.abundancePlotAllPeptides(df1prtn, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
+    
+    if len(fig.data) < 1 : return #  if nothing showing, skip
+    
+    fig.update_layout( 
+      title={
+        'text': labels['title'],
+        'x': 0.45,
+        'xanchor': 'center'
+        }, 
+      xaxis_title=labels['x'], 
+      yaxis_title=labels['y'],
+      legend_title="Peptide",
+      legend_tracegroupgap=1, 
+      font=dict(
+          family=labels['fontfamily'],
+          size=labels['size'],
+          color="Black" # "RebeccaPurple"
+      ),
+      legend=legendOpts
+    )
+    
+    proteingenename = prtnrow.name[1] if type(prtnrow.name[1]) == str else prtnrow.name[0]
+    
+    if saveFigOpts['savePlot']:
+      options = saveFigOpts.copy() 
+      options['folder'] += 'htmls/peptides/'
+      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
+    if saveFigOpts['showPlot']: fig.show()
+
     # Now plot protein level average with trendline
     # no longer making protein level plots 20230719
-    # df = self.df_Peptides.loc[prtnGrp[0],:] # df most likely have changed by abundancePlotAllPeptides 
+    # df = self.df_Peptides.loc[prtnrow.name[0],:] # df most likely have changed by abundancePlotAllPeptides 
     # labels['title'] = f'Protein level: {gene}' 
-    # _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+    # _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
 
     return 
   
@@ -650,11 +691,13 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    plotmax = 6 # in/out
+    # plotmax = 6 # in/out
     #
-    for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
+    self.df_Proteins.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
+    # self.df_Peptides.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
+    # for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
       # if plotmax == 0 : break # in/out
-      self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+      # self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
       # plotmax -= 1 # in/out
 
     
@@ -675,12 +718,11 @@ pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides2023
 #%%
 # saveplot, showplot = False, True
 # saveplot, showplot = True, False
-# saveplot, showplot = True, True
-saveplot, showplot = False, False
+saveplot, showplot = True, True
+# saveplot, showplot = False, False
 savePath = "../media/plots/"
 
-# pto.abundancePlotPgAll(savePlot=saveplot, saveFolder=savePath)
-# pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%
