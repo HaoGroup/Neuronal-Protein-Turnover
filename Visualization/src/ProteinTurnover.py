@@ -13,6 +13,7 @@ import ExpoDecayFit as edf
 # import seaborn as sns
 
 # Create class ProteinTurnover to handle and organize the various parts of the study
+# v3 - getting results table first, then (optional) create plots. Also use .apply() whenever possible
 # v2 - switching to plotly from matplotlib
 # added column "time" instead of using the index to allow better/easier plots 
 #
@@ -270,30 +271,30 @@ class ProteinTurnover:
     res['font']['size'] = res['font']['size'] if (res['font'].__contains__('size') and res['font']['size']>0) else 7
     return res
   
-  def __setArgYerroropt(self, yerroropt=dict(type=None, array=None, arrayminus=None, symmetric=None, visible=None) ):
-    """
-    setting generic keyword argument yerror with type, array, arrayminus, symmetric, visible, value
-    Args:
-        yerroropt (dict, optional): type (str), array (list), arrayminus (list), symmetric (bool), visible (bool), value (float, for percent type)...
-    Returns:
-        dict: { type, array, ... }
-    """
-    # fig = go.Figure(data=go.Scatter(
-    #     x=[0, 1, 2],
-    #     y=[6, 10, 2],
-    #     error_y=dict(
-    #         type='data', # value of error bar given in data coordinates
-    #         array=[1, 2, 3],
-    #         visible=True)
-    # ))
-    res = yerroropt.copy()
-    res['type'] = res['type'] if (res.__contains__('type') and res['type']) else 'data' # 'data', 'percent'
-    res['symmetric'] = res['symmetric'] if ( res.__contains__('symmetric') and isinstance(res['symmetric'], bool) ) else True
-    res['visible'] = res['visible'] if ( res.__contains__('visible') and isinstance(res['visible'], bool) ) else True
-    res['array'] = res['array'] if (res.__contains__('array') and (not res['array'] is None) ) else None
-    res['arrayminus'] = res['arrayminus'] if (res.__contains__('arrayminus') and (not res['arrayminus'] is None) ) else None
-    res['value'] = res['value'] if (res.__contains__('value') and (not res['value'] is None) and res['type']=='percent') else None
-    return res
+  # def __setArgYerroropt(self, yerroropt=dict(type=None, array=None, arrayminus=None, symmetric=None, visible=None) ):
+  #   """
+  #   setting generic keyword argument yerror with type, array, arrayminus, symmetric, visible, value
+  #   Args:
+  #       yerroropt (dict, optional): type (str), array (list), arrayminus (list), symmetric (bool), visible (bool), value (float, for percent type)...
+  #   Returns:
+  #       dict: { type, array, ... }
+  #   """
+  #   # fig = go.Figure(data=go.Scatter(
+  #   #     x=[0, 1, 2],
+  #   #     y=[6, 10, 2],
+  #   #     error_y=dict(
+  #   #         type='data', # value of error bar given in data coordinates
+  #   #         array=[1, 2, 3],
+  #   #         visible=True)
+  #   # ))
+  #   res = yerroropt.copy()
+  #   res['type'] = res['type'] if (res.__contains__('type') and res['type']) else 'data' # 'data', 'percent'
+  #   res['symmetric'] = res['symmetric'] if ( res.__contains__('symmetric') and isinstance(res['symmetric'], bool) ) else True
+  #   res['visible'] = res['visible'] if ( res.__contains__('visible') and isinstance(res['visible'], bool) ) else True
+  #   res['array'] = res['array'] if (res.__contains__('array') and (not res['array'] is None) ) else None
+  #   res['arrayminus'] = res['arrayminus'] if (res.__contains__('arrayminus') and (not res['arrayminus'] is None) ) else None
+  #   res['value'] = res['value'] if (res.__contains__('value') and (not res['value'] is None) and res['type']=='percent') else None
+  #   return res
   
   # def __setArgTrendlines(self, trendlines=dict(show=False, solid=True, color=None, width=None) ):
   #   """
@@ -335,7 +336,8 @@ class ProteinTurnover:
   def __singleProteinDatumPlot(self, proteinrow, fig):
     return fig
   
-  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict(), yerroropt=dict() ):
+  # def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict(), yerroropt=dict() ):
+  def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict() ):
     """
     Add 1 trace to go.Figure object
     Args:
@@ -348,7 +350,7 @@ class ProteinTurnover:
         markeropt (dict, optional): marker options. {symbol, size, color}. Defaults to {}.
         error_y (dict, optional): error bars for each datapoint. Defaults to None.
     """
-    yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
+    # yerroropt = self.__setArgYerroropt(yerroropt=yerroropt)
     # check lineopt standards
     # check markeropt standards
     # https://plotly.com/python/marker-style/ # hourglass, cross, x-thin, ...
@@ -359,15 +361,16 @@ class ProteinTurnover:
     showlegend = specs['showlegend'] if ( specs.__contains__('showlegend') and isinstance(specs['showlegend'], bool) ) else False
     legendgroup = specs['legendgroup'] if (specs.__contains__('legendgroup') and specs['legendgroup']) else specs['name']
     
-    if ( (not yerroropt['array'] is None) and yerroropt['visible']):
-      fig.add_trace(go.Scatter( mode=mode, x=x, y=y, error_y=yerroropt, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
-    else: # add more conditions/scenarios here if needed
-      fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+    # if ( (not yerroropt['array'] is None) and yerroropt['visible']):
+    #   fig.add_trace(go.Scatter( mode=mode, x=x, y=y, error_y=yerroropt, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+    # else: # add more conditions/scenarios here if needed
+    #   fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+    fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
       
     # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendOpts )
     return fig
   
-  def abundancePlot1Peptide(self, peptiderow, fig, prtnGrp, markeropt=dict()):
+  def abundancePlot1Peptide(self, peptiderow, fig, prtnGrp, samplexs, markeropt=dict()):
     """
     Create curve fitting for each peptide, find the decay constant, half life, and r-squared; update the results table, and create plot if applicable
     Args:
@@ -386,33 +389,25 @@ class ProteinTurnover:
     markeropt = self.__setArgMarkeropt(markeropt=markeropt)
     markeropt['color'] = lineopt['color']
     # legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
-    thissupport = self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'support' ]
+    # thissupport = self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'support' ]
+    thischart = self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ]
+    modelChoice = self.__modelTypes[0]
+    b = peptiderow['b_'+modelChoice]
     
-    # Use ExpoDecayFit module
-    if thissupport < 1: return fig # no data point, otherwise, at least one data point, try get model
-    model = edf.ExpoDecayFit(peptiderow, xAxisName = self.__xAxisName, xvalues = self.__xvalues, modelTypes=self.__modelTypes, statsTypes=self.__statsTypes ) # model.startx, starty, samplexs, sampleys
-    bs, t12s, r2s = [ model.modelsummary.loc[t,:] for t in self.__statsTypes ]
-    stats = dict( b=bs, t12=t12s, r2=r2s )
-
-    modelChoice = 'CFit' # pick one to plot here, if more than one available. ("LnLM1", "LnLM2", "CFit")
-    ysamples = 100*model.sampleys[modelChoice]
-    # xrange = round( min( max(6, 1.8*t12s[modelChoice]) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
-    
-    # Next, determine if eligible to make graph, update chart value for this peptide
     # only if support > threshold, and r-square > cutoff, then show graph
-    if ( thissupport < self.__supportMin or (stats['r2']<self.__r2cutoff).any() ) : return # fig
-    # if ( thissupport > self.__supportMin -1 and (stats['r2']>self.__r2cutoff).all() ) : self.df_Peptides.loc[ (prtnGrp[0],peptide) , 'chart' ] = 1 # good condition
-    
+    if thischart < 1: return # fig # not eligible for a plot 
+
     # model lines
-    specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='lines',  showlegend=False, legendgroup = peptide)
+    sampleys = 100 * np.exp(-b*samplexs)
+    specs = dict(name=peptide+f' t = {peptiderow["t12_"+ modelChoice].__round__(1)}d', connectgaps=False, mode='lines',  showlegend=False, legendgroup = peptide)
     markeropt['size'] = 2
     # legendOpts['showlegend'] = True 
     specs['showlegend'] = True 
-    fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
-    # fig = self.__add1goTrace(fig, x=tuple(model.samplexs)+(np.nan,)+tuple(model.samplexs ), y=tuple(ysamples)+(np.nan,)+tuple(100-ysamples) , specs=specs, lineopt=lineopt, markeropt=markeropt )
+    fig = self.__add1goTrace(fig, x=tuple(samplexs), y=tuple(sampleys), specs=specs, lineopt=lineopt, markeropt=markeropt )
+    # fig = self.__add1goTrace(fig, x=tuple(samplexs)+(np.nan,)+tuple(samplexs ), y=tuple(sampleys)+(np.nan,)+tuple(100-sampleys) , specs=specs, lineopt=lineopt, markeropt=markeropt )
 
     specs = dict(connectgaps=False, mode='lines', showlegend=False, legendgroup = peptide)
-    fig = self.__add1goTrace(fig, x=tuple(model.samplexs), y=tuple(100-ysamples), specs=specs, lineopt=lineopt, markeropt=markeropt )
+    fig = self.__add1goTrace(fig, x=tuple(samplexs), y=tuple(100-sampleys), specs=specs, lineopt=lineopt, markeropt=markeropt )
     
     # data points
     # specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='markers',  showlegend=False, legendgroup = peptide)
@@ -421,68 +416,9 @@ class ProteinTurnover:
     xvals = ['0']+self.__xvalues
     fig = self.__add1goTrace(fig, x=tuple(xvals)*2, y=tuple(100*peptiderow[ xvals ])+tuple(100*(1-peptiderow[ xvals ])), specs=specs, lineopt=lineopt, markeropt=markeropt )
     
-    # combine both light and heavy series data points and model lines
-    # xall = tuple(df[self.__xAxisName])*2 +tuple(model.samplexs)*2
-    # yall = tuple(df[peptide])+tuple(100-df[peptide])+tuple(ysamples)+tuple(100-ysamples)
-    
-    # fig = self.__add1goTrace(fig, x=xall, y=yall, specs=specs, lineopt=lineopt, markeropt=markeropt )
-    
     self.__setNextColorInd()
     
     return # fig
-  
-  # def abundancePlotAllPeptides(self, df, prtnGrp, labels=dict(), saveFigOpts=dict(), legendOpts=dict() ):
-  #   """
-  #   Args:
-  #       df (Dataframe): Pandas df_Peptide filtered df for one protein
-  #       prtnGrp (tuple): Protein-Gene index
-  #       labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-  #       lines (dict, optional): show, solid (bool), color (str), width (float) 
-  #       markers (dict, optional): show (bool), symbol (str), size (float) 
-        
-  #   return: plotly graph object GO
-  #   """    
-  #   labels = self.__setArgLabels(labels=labels)
-  #   saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-  #   legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
-
-  #   cpalette = px.colors.qualitative.Dark24  # trendline use '#00FE35', which is Light24[1] color, lime green
-  #   colorcnt = 0 # initialize # can consider making this global if a random start is preferred.
-  #   colorcntmax = len(cpalette)    
-  #   fig = go.Figure()
-  #   for peptide, row in df.iterrows():
-  #     fig = self.abundancePlot1Peptide(fig=fig, peptiderow=row, prtnGrp=prtnGrp, peptide=peptide, lineopt = dict( color=cpalette[ colorcnt%colorcntmax ], width=2), legendOpts=legendOpts )
-  #     colorcnt += 1
-    
-  #   if len(fig.data) < 1 : return #  if nothing showing, skip
-    
-  #   fig.update_layout( 
-  #     title={
-  #       'text': labels['title'],
-  #       'x': 0.45,
-  #       'xanchor': 'center'
-  #       }, 
-  #     xaxis_title=labels['x'], 
-  #     yaxis_title=labels['y'],
-  #     legend_title="Peptide",
-  #     legend_tracegroupgap=1, 
-  #     font=dict(
-  #         family=labels['fontfamily'],
-  #         size=labels['size'],
-  #         color="Black" # "RebeccaPurple"
-  #     ),
-  #     legend=legendOpts
-  #   )
-    
-  #   proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
-    
-  #   if saveFigOpts['savePlot']:
-  #     options = saveFigOpts.copy() 
-  #     options['folder'] += 'htmls/peptides/'
-  #     self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
-  #   if saveFigOpts['showPlot']: fig.show()
-    
-  #   return fig
   
   def __savePlot(self, saveFigOpts, fig, filename):
     """
@@ -629,7 +565,11 @@ class ProteinTurnover:
     """
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)    
+    legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
+    t12best = prtnrow['t12_'+self.__modelTypes[0]+'_best'] # use the default model best estimate of peptide half lives harmonic mean
+    xrange = round( min( max(6, 1.6*t12best) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.6*t12
+    sampleN = 300
+    samplexs = np.linspace(start=0, stop=xrange, num = sampleN)
 
     df1prtn = self.df_Peptides.loc[prtnrow.name[0],:] # subset only the protein info in df_Peptides
     
@@ -637,14 +577,17 @@ class ProteinTurnover:
     # prtnrow.name = ('Protein', 'Gene_x')
     gene = prtnrow.name[1] if type(prtnrow.name[1]) == str else 'Protein Group: '+prtnrow.name[0]
     
-    labels['title'] = f'Peptide level: {gene}'
+    labels['title'] = f'Gene: {gene}'
     # cpalette = self.__colorPalette # trendline use '#00FE35', which is Light24[1] color, lime green
     fig = go.Figure()    
     
-    df1prtn.apply(self.abundancePlot1Peptide, fig=fig, prtnGrp=prtnrow.name, axis=1 )
+    df1prtn.apply(self.abundancePlot1Peptide, fig=fig, prtnGrp=prtnrow.name, samplexs = samplexs, axis=1 )
     # _ = self.abundancePlotAllPeptides(df1prtn, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
     
     if len(fig.data) < 1 : return #  if nothing showing, skip
+
+    # show half life if within range
+    if t12best < xrange: fig.add_vline(x=t12best, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12best.__round__(2)), annotation_position='bottom right')
     
     fig.update_layout( 
       title={
@@ -716,9 +659,9 @@ class ProteinTurnover:
 pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
 
 #%%
-# saveplot, showplot = False, True
+saveplot, showplot = False, True
 # saveplot, showplot = True, False
-saveplot, showplot = True, True
+# saveplot, showplot = True, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
 
