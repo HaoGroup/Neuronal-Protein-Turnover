@@ -133,7 +133,7 @@ class ProteinTurnover:
     """
     Export df_Peptides table for web dev
     Args:
-        format (str, optional): _description_. Defaults to 'json'.
+        format (str, optional): _description_. Defaults to 'json', where only df_Proteins is exported. If csv, both df_Peptides and df_Proteins are exported.
     """
     filename = filename if filename else "result"
     if format=='csv': 
@@ -144,7 +144,7 @@ class ProteinTurnover:
     # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
     newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
     # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
-    df = self.df_Peptides.copy()
+    df = self.df_Proteins.copy()
     df.reset_index(inplace=True)
     df.rename(newHeaders, axis=1, inplace=True)
     
@@ -179,7 +179,7 @@ class ProteinTurnover:
 
     df_res['chart'] = df_gb['chart'].agg('sum') # find total number of peptides have charts
     # next, get list of peptides and their metrics from different models into a dict()
-    df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: tuple(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
+    df_res[pepCol] = df_gb[colHeads].apply(lambda g: { h: list(g[h]) for h in colHeads} ) # adding the resulting pd series to df_res
     
     # set one more column for protein plot, with t12_pass value if available, or else use t12_all
     df_res[ [t+'_best' for t in statsHeaders['t12']] ] = pd.isna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * df_res[ [t+'_all' for t in statsHeaders['t12']] ].values + pd.notna(df_res[[t+'_pass' for t in statsHeaders['t12']]]).values * np.nan_to_num(df_res[[t+'_pass' for t in statsHeaders['t12']]])
@@ -490,7 +490,7 @@ class ProteinTurnover:
   #   return # no longer need to get protein level chart (2023-07-19)
   
     #   startx, sampleN = 0, 300 # match these with ExpoDecayFit parameters
-    #   maxx = round( min( max(6, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
+    #   maxx = round( min( max(6.5, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
     #   samplexs = np.linspace(start=startx, stop=maxx, num = sampleN)
     #   sampleys = 100 * np.exp(-b*samplexs)
     #   symbol = 'circle'
@@ -567,7 +567,7 @@ class ProteinTurnover:
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
     t12best = prtnrow['t12_'+self.__modelTypes[0]+'_best'] # use the default model best estimate of peptide half lives harmonic mean
-    xrange = round( min( max(6, 1.6*t12best) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.6*t12
+    xrange = round( min( max(6.5, 1.6*t12best) , 10) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
     sampleN = 300
     samplexs = np.linspace(start=0, stop=xrange, num = sampleN)
 
@@ -665,7 +665,7 @@ saveplot, showplot = False, True
 # saveplot, showplot = False, False
 savePath = "../media/plots/"
 
-pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+# pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 
 
 # %%

@@ -46,19 +46,22 @@ class ExpoDecayFit:
     # self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype]
     self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
     
-    self.startx = 0
-    self.starty = 0
-    self.maxx = 10
-    self.maxy = 100 # default shows 100%
-    self.sampleN = 300 
-    self.samplexs = self.__setSampleXs()
+    # moved y_predicted outside of module now as it's quite straight foward
+    # self.startx = 0
+    # self.starty = 0
+    # self.maxx = 10
+    # self.maxy = 100 # default shows 100%
+    # self.sampleN = 300 
+    # self.samplexs = self.__setSampleXs()
+    # self.sampleys = pd.DataFrame(index = range(self.sampleN), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
+    # was
     # self.sampleys = pd.DataFrame(index = range(self.sampleN), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype].
-    self.sampleys = pd.DataFrame(index = range(self.sampleN), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
     self.__expFitAvgLightSeries(row, model=modelTypes[0] )
         
     return
   
-  def __setSampleXs(self): return np.linspace(start=self.startx, stop=self.maxx, num = self.sampleN)
+  # def __setSampleXs(self): return np.linspace(start=self.startx, stop=self.maxx, num = self.sampleN)
+  
   # Curve fitting function # for Scipy curve_fitting
   def __expDecayFcn(self, x, lambd): return np.exp(-lambd * x)
 
@@ -84,12 +87,7 @@ class ExpoDecayFit:
         row (Pandas Series): a row of data, from peptide typically. 
     return: None
     """
-    # import numpy as np
-    # from sklearn.linear_model import LinearRegression
-    # import statsmodels.api as sm
-    # from scipy.optimize import curve_fit
-    
-    # res = dict() # with b, t12, r2 values
+
     
     # Try scipy curve_fit:
     # from scipy.optimize import curve_fit
@@ -114,7 +112,8 @@ class ExpoDecayFit:
       self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
       self.modelsummary.loc[self.__statsTypes[2],thismodel] = mdl.score(x.reshape(-1,1), logy)
       # save model curve fit data points
-      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
+      # moved y_predicted outside of module now as it's quite straight foward
+      # self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
       
     if (model=='LnLM2' or model=='all'):  # statsmodels LR
       thismodel = 'LnLM2'
@@ -128,7 +127,8 @@ class ExpoDecayFit:
       self.modelsummary.loc[self.__statsTypes[1],thismodel] = np.log(2)/res_b
       self.modelsummary.loc[self.__statsTypes[2],thismodel] = results.rsquared
       # save model curve fit data points
-      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
+      # moved y_predicted outside of module now as it's quite straight foward
+      # self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
 
     if (model=='CFit' or model=='all'):  # Scipy CurveFit
       thismodel = 'CFit'
@@ -150,7 +150,8 @@ class ExpoDecayFit:
       # r_squared = r2_score(y, self.__expDecayFcn(xvals, res_b))
       self.modelsummary.loc[self.__statsTypes[2],thismodel] = r_squared
       # save model curve fit data points
-      self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
+      # moved y_predicted outside of module now as it's quite straight foward
+      # self.sampleys[thismodel] = np.exp(-res_b*self.samplexs) # express in percentages
       
     # if (model=='PolyFit' or model=='all'):  # Numpy Polyfit
       # pass
