@@ -686,7 +686,10 @@ class ProteinTurnover:
 
 # pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
-pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
 
 #%%
 # saveplot, showplot = False, True
