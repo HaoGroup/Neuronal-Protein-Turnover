@@ -129,30 +129,6 @@ class ProteinTurnover:
     
     return
   
-  def exportResults(self, filename="", format='json'):
-    """
-    Export df_Peptides table for web dev
-    Args:
-        format (str, optional): _description_. Defaults to 'json', where only df_Proteins is exported. If csv, both df_Peptides and df_Proteins are exported.
-    """
-    filename = filename if filename else "result"
-    if format=='csv': 
-      self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1).to_csv(os.path.join("../data/",filename+"_peptides.csv"))
-      self.df_Proteins.to_csv(os.path.join("../data/",filename+"_protein.csv"))
-      return
-    
-    # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
-    newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
-    # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
-    df = self.df_Proteins.copy()
-    df.reset_index(inplace=True)
-    df.rename(newHeaders, axis=1, inplace=True)
-    
-    print(f'resulting results has dim: {df.shape}')
-    print(df.head(2))
-    df.to_json( os.path.join("../data/",filename+"_protein.json"), orient="records")
-    return
-  
   def __setDfProteins(self):
     """
     Generate df_Proteins dataframe after all results were obtained. 
@@ -191,8 +167,33 @@ class ProteinTurnover:
     self.df_Proteins = df_res.set_index(self.__compoIndexGene)
 
     return
-    
+
   def chkDfPeptidesIndexUnique(self): return self.df_Peptides.index.is_unique
+  
+  def exportResults(self, filename="", format='json'):
+    """
+    Export df_Peptides table for web dev
+    Args:
+        format (str, optional): _description_. Defaults to 'json', where only df_Proteins is exported. If csv, both df_Peptides and df_Proteins are exported.
+    """
+    filename = filename if filename else "result"
+    if format=='csv': 
+      self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1).to_csv(os.path.join("../data/",filename+"_peptides.csv"))
+      self.df_Proteins.to_csv(os.path.join("../data/",filename+"_protein.csv"))
+      return
+    
+    # default json, will have protein as key, values will be gene_x, description, decay constants, half-lives, rsquared, and peptide list
+    newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc"}
+    # newHeaders = {"Protein": "prtn", "Gene_x": "gene", "Protein_Description": "desc", "proteinT12" : "proteinT12" , "proteinT12est" : "proteinT12est" }
+    df = self.df_Proteins.copy()
+    df.reset_index(inplace=True)
+    df.rename(newHeaders, axis=1, inplace=True)
+    
+    print(f'resulting results has dim: {df.shape}')
+    print(df.head(2))
+    df.to_json( os.path.join("../data/",filename+"_protein.json"), orient="records")
+    return
+  
   
   def __setNextColorInd(self, n=1) -> None:
     self.__colorInd = (self.__colorInd + n) % self.__colorMax
@@ -324,17 +325,44 @@ class ProteinTurnover:
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
-  def proteinHalflifeChart(self):# -> None:
+  def proteinHalflifeChart(self, saveFigOpts = dict(savePlot=True, showPlot=True, folder='../media/plots/proteinRank/')) -> None:
+    saveFigOpts=self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     d = self.df_Proteins
     df = d.drop(list(d.filter(regex = '(_all|_pass)')) + ['peptides', 'Protein_Description'] , axis = 1)
-    df.plot(x="rank", y="t12_"+self.__modelTypes[0]+"_best")
+    # df.plot(x="rank", y="t12_"+self.__modelTypes[0]+"_best")
     fig = go.Figure()
-    fig = df.apply(self.__singleProteinDatumPlot, fig)
+    df.apply(self.__singleProteinDatumPlot, fig=fig, axis=1)
     
-    return df
+    fig.update_layout( 
+      title={
+        'text': 'Protein Half-life rank',
+        'x': 0.45,
+        'xanchor': 'center'
+        }, 
+      xaxis_title='Rank', 
+      yaxis_title='Average half-lives (day)',
+      font=dict(
+          family="Garamond",
+          size=16,
+          color="Black" # "RebeccaPurple"
+      )
+    )
+
+    if saveFigOpts['savePlot']:
+      options = saveFigOpts.copy() 
+      self.__savePlot(options, fig, "proteinHalflifeRank")
+    if saveFigOpts['showPlot']: fig.show()
+    
+    return 
   
-  def __singleProteinDatumPlot(self, proteinrow, fig):
-    return fig
+  def __singleProteinDatumPlot(self, proteinrow, fig ) -> None:
+    model=self.__modelTypes[0]
+    # protein = proteinrow.name[0]
+    gene = proteinrow.name[1]
+    specs = dict(name=gene, connectgaps=False, mode='markers',  showlegend=False, legendgroup = 't12rank')
+    markeropt = dict(color="black", symbol='circle', size=4)
+    self.__add1goTrace(fig, x=[proteinrow["rank"]], y=[proteinrow["t12_"+model+"_best"]], specs=specs, markeropt=markeropt)
+    return # fig
   
   # def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict(), yerroropt=dict() ):
   def __add1goTrace(self, fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict(), legendOpts=dict() ):
@@ -370,6 +398,99 @@ class ProteinTurnover:
     # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendOpts )
     return fig
   
+  def abundancePlotPgAll(self, labels=dict(), saveFigOpts=dict()): 
+    """
+    Args:
+        labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
+        saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
+    return: None
+    """
+    # assumes labels and saveFigOpts are in the right forms.
+    labels = self.__setArgLabels(labels=labels)
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+    # plotmax = 6 # in/out
+    #
+    self.df_Proteins.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
+    # self.df_Peptides.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
+    # for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
+      # if plotmax == 0 : break # in/out
+      # self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
+      # plotmax -= 1 # in/out
+
+    
+    # self.__setDfProteins() # set df_Proteins 
+    
+    return
+  
+  def abundancePlot1Pg(self, prtnrow, labels=dict(), saveFigOpts = dict(), legendOpts=dict()  ):
+    """
+    Args:
+        prtnGrp (tuple): the (ProteinGrp, Gene) being processed
+        labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
+        saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
+        legendOpts (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
+    return: None
+    """
+    labels = self.__setArgLabels(labels=labels)
+    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
+    legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
+    t12best = prtnrow['t12_'+self.__modelTypes[0]+'_best'] # use the default model best estimate of peptide half lives harmonic mean
+    xrange = round( min( max(6.5, 1.6*t12best) , 10) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
+    sampleN = 300
+    samplexs = np.linspace(start=0, stop=xrange, num = sampleN)
+
+    df1prtn = self.df_Peptides.loc[prtnrow.name[0],:] # subset only the protein info in df_Peptides
+    
+    if df1prtn.shape[0] < 1: return None # nothing to plot
+    # prtnrow.name = ('Protein', 'Gene_x')
+    gene = prtnrow.name[1] if type(prtnrow.name[1]) == str else 'Protein Group: '+prtnrow.name[0]
+    
+    labels['title'] = f'Gene: {gene}'
+    # cpalette = self.__colorPalette # trendline use '#00FE35', which is Light24[1] color, lime green
+    fig = go.Figure()    
+    
+    df1prtn.apply(self.abundancePlot1Peptide, fig=fig, prtnGrp=prtnrow.name, samplexs = samplexs, axis=1 )
+    # _ = self.abundancePlotAllPeptides(df1prtn, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
+    
+    if len(fig.data) < 1 : return #  if nothing showing, skip
+
+    # show half life if within range
+    if t12best < xrange: fig.add_vline(x=t12best, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12best.__round__(2)), annotation_position='bottom right')
+    
+    fig.update_layout( 
+      title={
+        'text': labels['title'],
+        'x': 0.45,
+        'xanchor': 'center'
+        }, 
+      xaxis_title=labels['x'], 
+      yaxis_title=labels['y'],
+      legend_title="Peptide",
+      legend_tracegroupgap=1, 
+      font=dict(
+          family=labels['fontfamily'],
+          size=labels['size'],
+          color="Black" # "RebeccaPurple"
+      ),
+      legend=legendOpts
+    )
+    
+    proteingenename = prtnrow.name[1] if type(prtnrow.name[1]) == str else prtnrow.name[0]
+    
+    if saveFigOpts['savePlot']:
+      options = saveFigOpts.copy() 
+      options['folder'] += 'htmls/peptides/'
+      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
+    if saveFigOpts['showPlot']: fig.show()
+
+    # Now plot protein level average with trendline
+    # no longer making protein level plots 20230719
+    # df = self.df_Peptides.loc[prtnrow.name[0],:] # df most likely have changed by abundancePlotAllPeptides 
+    # labels['title'] = f'Protein level: {gene}' 
+    # _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
+
+    return 
+
   def abundancePlot1Peptide(self, peptiderow, fig, prtnGrp, samplexs, markeropt=dict()):
     """
     Create curve fitting for each peptide, find the decay constant, half life, and r-squared; update the results table, and create plot if applicable
@@ -554,99 +675,7 @@ class ProteinTurnover:
     #   return fig
     # return
   
-  def abundancePlot1Pg(self, prtnrow, labels=dict(), saveFigOpts = dict(), legendOpts=dict()  ):
-    """
-    Args:
-        prtnGrp (tuple): the (ProteinGrp, Gene) being processed
-        labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-        saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
-        legendOpts (dict, optional): legendgroup (str), title_font_family (str), font (dict), ...
-    return: None
-    """
-    labels = self.__setArgLabels(labels=labels)
-    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
-    t12best = prtnrow['t12_'+self.__modelTypes[0]+'_best'] # use the default model best estimate of peptide half lives harmonic mean
-    xrange = round( min( max(6.5, 1.6*t12best) , 10) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
-    sampleN = 300
-    samplexs = np.linspace(start=0, stop=xrange, num = sampleN)
-
-    df1prtn = self.df_Peptides.loc[prtnrow.name[0],:] # subset only the protein info in df_Peptides
-    
-    if df1prtn.shape[0] < 1: return None # nothing to plot
-    # prtnrow.name = ('Protein', 'Gene_x')
-    gene = prtnrow.name[1] if type(prtnrow.name[1]) == str else 'Protein Group: '+prtnrow.name[0]
-    
-    labels['title'] = f'Gene: {gene}'
-    # cpalette = self.__colorPalette # trendline use '#00FE35', which is Light24[1] color, lime green
-    fig = go.Figure()    
-    
-    df1prtn.apply(self.abundancePlot1Peptide, fig=fig, prtnGrp=prtnrow.name, samplexs = samplexs, axis=1 )
-    # _ = self.abundancePlotAllPeptides(df1prtn, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
-    
-    if len(fig.data) < 1 : return #  if nothing showing, skip
-
-    # show half life if within range
-    if t12best < xrange: fig.add_vline(x=t12best, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12best.__round__(2)), annotation_position='bottom right')
-    
-    fig.update_layout( 
-      title={
-        'text': labels['title'],
-        'x': 0.45,
-        'xanchor': 'center'
-        }, 
-      xaxis_title=labels['x'], 
-      yaxis_title=labels['y'],
-      legend_title="Peptide",
-      legend_tracegroupgap=1, 
-      font=dict(
-          family=labels['fontfamily'],
-          size=labels['size'],
-          color="Black" # "RebeccaPurple"
-      ),
-      legend=legendOpts
-    )
-    
-    proteingenename = prtnrow.name[1] if type(prtnrow.name[1]) == str else prtnrow.name[0]
-    
-    if saveFigOpts['savePlot']:
-      options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/peptides/'
-      self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
-    if saveFigOpts['showPlot']: fig.show()
-
-    # Now plot protein level average with trendline
-    # no longer making protein level plots 20230719
-    # df = self.df_Peptides.loc[prtnrow.name[0],:] # df most likely have changed by abundancePlotAllPeptides 
-    # labels['title'] = f'Protein level: {gene}' 
-    # _ = self.abundancePlotProteinLevel(df, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
-
-    return 
   
-  
-  def abundancePlotPgAll(self, labels=dict(), saveFigOpts=dict()): 
-    """
-    Args:
-        labels (dict, optional): x-, y-labels and title. Defaults to empty dictionary
-        saveFigOpts (dict, optional): savePlot (binary) and folder (str). Defaults to dict(savePlot=False, folder=None).
-    return: None
-    """
-    # assumes labels and saveFigOpts are in the right forms.
-    labels = self.__setArgLabels(labels=labels)
-    saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    # plotmax = 6 # in/out
-    #
-    self.df_Proteins.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
-    # self.df_Peptides.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
-    # for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
-      # if plotmax == 0 : break # in/out
-      # self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      # plotmax -= 1 # in/out
-
-    
-    # self.__setDfProteins() # set df_Proteins 
-    
-    return
   
 
 #%%
@@ -656,16 +685,18 @@ class ProteinTurnover:
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
 # pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
+pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
 
 #%%
-saveplot, showplot = False, True
+# saveplot, showplot = False, True
 # saveplot, showplot = True, False
 # saveplot, showplot = True, True
-# saveplot, showplot = False, False
+saveplot, showplot = False, False
 savePath = "../media/plots/"
 
 # pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
+pto.proteinHalflifeChart()
 
 
 # %%
