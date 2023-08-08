@@ -34,7 +34,7 @@ class ProteinTurnover:
     self.__yUnit = '%'
     self.__xAxisName = 'Time'
     self.__xUnit = 'day'
-    self.__xvalues = [1, 2, 4, 6]
+    self.__xvalues = ['1', '2', '4', '6']
     # Match with ExpoDecayFit module:
     self.__statsTypes = ('b','t12','r2') # keeping track of three results/statics from exponential fit
     self.__modelTypes = ("CFit",) # use only Curve-fit, 20230713
@@ -66,9 +66,9 @@ class ProteinTurnover:
       df = pd.read_excel(raw) if (raw[-5:] == '.xlsx' or raw[-4:] == '.xls') else pd.read_csv(raw) if (raw[-4:] == '.csv') else None
       
       # clean up column names, avoid dots in names
-      df.columns =  [ int(col) if str(col).isnumeric() else col.replace('.','_') for col in df.columns.values ]
+      df.columns =  [ str(col) if str(col).isnumeric() else col.replace('.','_') for col in df.columns.values ]
       # 20230620 data file no longer has day0 columns. Re-create here:
-      if (not 0 in df.columns): df[0] = 1
+      if (not '0' in df.columns): df['0'] = 1
       # df['iMN_Day0_Light_Relative_Abundance'] = 1
       # df['iMN_Day0_Heavy_Relative_Abundance'] = 0
       
@@ -534,7 +534,7 @@ class ProteinTurnover:
     # specs = dict(name=peptide+f' t = {stats["t12"][modelChoice].__round__(1)}d', connectgaps=False, mode='markers',  showlegend=False, legendgroup = peptide)
     specs = dict(name=peptide, connectgaps=False, mode='markers',  showlegend=False, legendgroup = peptide)
     markeropt['size'] = 4
-    xvals = [0]+self.__xvalues
+    xvals = ['0']+self.__xvalues
     fig = self.__add1goTrace(fig, x=tuple(xvals)*2, y=tuple(100*peptiderow[ xvals ])+tuple(100*(1-peptiderow[ xvals ])), specs=specs, lineopt=lineopt, markeropt=markeropt )
     
     self.__setNextColorInd()
@@ -606,7 +606,7 @@ class ProteinTurnover:
     # data points
     # markeropt = dict(color=colors['light'], symbol=symbol, size=4)
     # specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
-    # xs = [0] + self.__xvalues 
+    # xs = ['0'] + self.__xvalues 
     # ys = 100*df[[0]+self.__xvalues].mean()
     # fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
     # graph heavy series
@@ -690,7 +690,7 @@ class ProteinTurnover:
     #   # data points
     #   markeropt = dict(color=colors['light'], symbol=symbol, size=4)
     #   specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
-    #   xs = [0] + self.__xvalues 
+    #   xs = ['0'] + self.__xvalues 
     #   ys = 100*df[[0]+self.__xvalues].mean()
     #   fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
     #   # graph heavy series
@@ -752,8 +752,8 @@ class ProteinTurnover:
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230808.csv", proteins="../data/dfProteins20230808.csv") )
+pto = ProteinTurnover(datafiles= dict(raw="../data/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230808.csv", proteins="../data/dfProteins20230808.csv") )
 
 #%%
 # saveplot, showplot = False, True
