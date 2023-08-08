@@ -18,7 +18,7 @@ class ExpoDecayFit:
   Exponential Decay Fit 
   """
   # def __init__(self, row, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
-  def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
+  def __init__(self, row, xAxisName = 'Time', xvalues = [1,2,4,6] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
     """_summary_
 
     Args:
@@ -95,7 +95,7 @@ class ExpoDecayFit:
     # x = df0[self.__xAxisName]
     # y = np.log(0.01*df0['light'])
     
-    xvals = ['0']+self.__xvalues
+    xvals = [0]+self.__xvalues
     data = row[xvals].dropna()
     data.index = data.index.astype(int)
     x = data.index.values
