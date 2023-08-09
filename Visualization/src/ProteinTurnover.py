@@ -621,7 +621,7 @@ class ProteinTurnover:
     # fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt)    
     
     
-    if t12 < xrange: fig.add_vline(x=t12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12best.__round__(2)), annotation_position='bottom right')
+    if t12 < xrange: fig.add_vline(x=t12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(t12.__round__(2)), annotation_position='bottom right')
     
     fig.update_layout( 
       title={
@@ -690,8 +690,8 @@ class ProteinTurnover:
     #   # data points
     #   markeropt = dict(color=colors['light'], symbol=symbol, size=4)
     #   specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
-    #   xs = ['0'] + self.__xvalues 
-    #   ys = 100*df[[0]+self.__xvalues].mean()
+    #   xs = [0] + [ int(x) for x in self.__xvalues ]  
+    #   ys = 100*df[['0']+self.__xvalues].mean()
     #   fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
     #   # graph heavy series
     #   # curve fit
