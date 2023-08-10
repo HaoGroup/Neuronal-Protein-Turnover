@@ -1,6 +1,7 @@
 #%%
 import pandas as pd
 import os
+import json
 import re
 import warnings
 import plotly.graph_objects as go
@@ -86,6 +87,7 @@ class ProteinTurnover:
     # get df_Proteins table either from given file, or from setDfProteins function.
     if (proteins):
       self.df_Proteins = pd.read_csv(proteins, index_col=self.__compoIndexGene)
+      self.df_Proteins['peptides']=self.df_Proteins['peptides'].apply( lambda x: json.loads(x.replace("'",'"')) ) # csv saved the peptides columns as strings, while it should be dict(). Json.loads() expect key to be in double quote, not single.
     else:
       self.__setDfProteins() # set df_Proteins when df_Peptides all set
 
@@ -436,7 +438,8 @@ class ProteinTurnover:
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     legendOpts = self.__setArglegendOpts(legendOpts=legendOpts)
     t12best = prtnrow['t12_'+self.__modelTypes[0]+'_best'] # use the default model best estimate of peptide half lives harmonic mean
-    xrange = round( min( max(6.5, 1.6*t12best) , 10) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
+    # xrange = round( min( max(6.5, 1.6*t12best) , 10) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
+    xrange = 0.5 * round( min( max(13, 3.2*t12best) , 20) ) # no more than 10, between 6.5 and 10. If t12 is close, show 1.6*t12
     sampleN = 300
     samplexs = np.linspace(start=0, stop=xrange, num = sampleN)
 
@@ -480,13 +483,13 @@ class ProteinTurnover:
     
     if saveFigOpts['savePlot']:
       options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/peptides/'
+      options['folder'] += 'htmls/peptideLevel/'
       self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
     if saveFigOpts['showPlot']: fig.show()
 
     # Now plot protein level average with trendline
     # df = self.df_Peptides.loc[prtnrow.name[0],:] # df most likely have changed by abundancePlotAllPeptides 
-    # labels['title'] = f'Protein level: {gene}' 
+    labels['title'] = f'Protein level: {gene}' 
     _ = self.abundancePlotProteinLevel(xrange=xrange, xs = samplexs, t12 = t12best, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
 
     return 
@@ -645,7 +648,7 @@ class ProteinTurnover:
     
     if saveFigOpts['savePlot']: 
       options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/proteins/'
+      options['folder'] += 'htmls/proteinLevel/'
       self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
     if saveFigOpts['showPlot']: fig.show()
     
@@ -752,8 +755,8 @@ class ProteinTurnover:
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw="../data/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230808.csv", proteins="../data/dfProteins20230808.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230808.csv", proteins="../data/dfProteins20230808.csv") )
 
 #%%
 # saveplot, showplot = False, True
