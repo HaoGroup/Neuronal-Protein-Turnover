@@ -411,18 +411,8 @@ class ProteinTurnover:
     # assumes labels and saveFigOpts are in the right forms.
     labels = self.__setArgLabels(labels=labels)
     saveFigOpts = self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
-    # plotmax = 6 # in/out
-    #
     self.df_Proteins.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
-    # self.df_Peptides.apply(self.abundancePlot1Pg , labels=labels, saveFigOpts=saveFigOpts , axis=1 )
-    # for prtnGrp in self.df_Proteins.index.values: # multi-level index with (protein, gene)
-      # if plotmax == 0 : break # in/out
-      # self.abundancePlot1Pg(prtnGrp=prtnGrp, labels=labels, saveFigOpts=saveFigOpts)
-      # plotmax -= 1 # in/out
 
-    
-    # self.__setDfProteins() # set df_Proteins 
-    
     return
   
   def abundancePlot1Pg(self, prtnrow, labels=dict(), saveFigOpts = dict(), legendOpts=dict()  ):
@@ -653,92 +643,6 @@ class ProteinTurnover:
     if saveFigOpts['showPlot']: fig.show()
     
     return fig
-    
-    proteinT12, proteinT12est = np.nan, np.nan
-    # 
-    # Prep the data
-    # with all peptide data, regardless good/bad
-    if df.shape[0] > 0: proteinT12est = np.log(2)/ df[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
-    df.loc[:,'proteinT12est'] = proteinT12est 
-    self.df_Peptides.loc[ prtnGrp[0], 'proteinT12est'] = proteinT12est # also need to update df_Peptides
-
-    # filter only peptides with chart created. 
-    gooddf = df[ df['chart']>0 ]
-    if gooddf.shape[0] == 0: 
-      df.loc[:,'proteinT12'] = np.nan 
-      self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = np.nan 
-    else: # create chart as well
-      b = gooddf[f'b_{self.__modelTypes[0]}'].mean() # modelTypes[0] = 'CFit'
-      proteinT12 = np.log(2)/b 
-      df.loc[:,'proteinT12'] = proteinT12
-      self.df_Peptides.loc[ prtnGrp[0], 'proteinT12'] = proteinT12 # also need to update df_Peptides
-      
-    return # no longer need to get protein level chart (2023-07-19)
-  
-    #   startx, sampleN = 0, 300 # match these with ExpoDecayFit parameters
-    #   maxx = round( min( max(6.5, 1.8*proteinT12) , 10) ) # no more than 10, between 6 and 10. If t12 is close, show 1.8*t12
-    #   samplexs = np.linspace(start=startx, stop=maxx, num = sampleN)
-    #   sampleys = 100 * np.exp(-b*samplexs)
-    #   symbol = 'circle'
-    #   colors = dict(heavy='rgba(199,10,165,.9)', light='rgba(56,233,99,.9)')
-    #   # cpalette = px.colors.qualitative.Dark24
-    #   # colorCnt, incr = 0, 2
-    #   fig = go.Figure()
-      
-    #   # graph light series
-    #   # curve fit
-    #   markeropt = dict(color=colors['light'], symbol=symbol, size=2)
-    #   specs = dict(mode='lines', name='Light data (degradation)', showlegend=True, connectgaps=True, legendgroup = 'light')
-    #   fig = self.__add1goTrace(fig, x=samplexs, y=sampleys, specs=specs, markeropt=markeropt )
-    #   # data points
-    #   markeropt = dict(color=colors['light'], symbol=symbol, size=4)
-    #   specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
-    #   xs = [0] + [ int(x) for x in self.__xvalues ]  
-    #   ys = 100*df[['0']+self.__xvalues].mean()
-    #   fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
-    #   # graph heavy series
-    #   # curve fit
-    #   markeropt = dict(color=colors['heavy'], symbol=symbol, size=2)
-    #   specs = dict(mode='lines', name='Heavy data (synthesis)', showlegend=True, connectgaps=True, legendgroup = 'heavy')
-    #   fig = self.__add1goTrace(fig, x=samplexs, y=100-sampleys, specs=specs, markeropt=markeropt )
-    #   # data points
-    #   markeropt = dict(color=colors['heavy'], symbol=symbol, size=4)
-    #   specs = dict(mode='markers', name='Heavy data (synthesis)', showlegend=False, connectgaps=False, legendgroup = 'heavy')
-    #   fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt)
-
-    #   if len(fig.data) < 1 : return #  if nothing showing, skip
-
-    #   # show half life if within range
-    #   if proteinT12 < maxx: fig.add_vline(x=proteinT12, line_width=1, line_dash="dash", line_color="black", annotation_text="&nbsp;<b>t<sub>½</sub></b> = "+str(proteinT12.__round__(2)), annotation_position='bottom right')
-      
-    #   fig.update_layout( 
-    #     title={
-    #       'text': labels['title'],
-    #       'x': 0.45,
-    #       'xanchor': 'center'
-    #       }, 
-    #     xaxis_title=labels['x'], 
-    #     yaxis_title=labels['y'],
-    #     legend_title="Data vs Model",
-    #     legend_tracegroupgap=4,
-    #     font=dict(
-    #         family=labels['fontfamily'],
-    #         size=labels['size'],
-    #         color="Black" # "RebeccaPurple"
-    #     ), 
-    #     legend=legendOpts
-    #   )
-      
-    #   proteingenename = prtnGrp[1] if type(prtnGrp[1]) == str else prtnGrp[0]
-      
-    #   if saveFigOpts['savePlot']: 
-    #     options = saveFigOpts.copy() 
-    #     options['folder'] += 'htmls/proteins/'
-    #     self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
-    #   if saveFigOpts['showPlot']: fig.show()
-      
-    #   return fig
-    # return
   
   
   
