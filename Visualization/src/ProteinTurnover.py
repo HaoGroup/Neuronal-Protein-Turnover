@@ -439,7 +439,8 @@ class ProteinTurnover:
     # prtnrow.name = ('Protein', 'Gene')
     gene = prtnrow.name[1] if type(prtnrow.name[1]) == str else 'Protein Group: '+prtnrow.name[0]
     
-    labels['title'] = f'Gene: {gene}'
+    # labels['title'] = f'Gene: {gene}'
+    labels['title'] = gene
     # cpalette = self.__colorPalette # trendline use '#00FE35', which is Light24[1] color, lime green
     fig = go.Figure()    
     
@@ -479,7 +480,8 @@ class ProteinTurnover:
 
     # Now plot protein level average with trendline
     # df = self.df_Peptides.loc[prtnrow.name[0],:] # df most likely have changed by abundancePlotAllPeptides 
-    labels['title'] = f'Protein level: {gene}' 
+    # labels['title'] = f'Protein level: {gene}' 
+    labels['title'] = gene 
     _ = self.abundancePlotProteinLevel(xrange=xrange, xs = samplexs, t12 = t12best, prtnGrp=prtnrow.name, labels=labels, saveFigOpts=saveFigOpts)
 
     return 
