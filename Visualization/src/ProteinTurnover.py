@@ -595,24 +595,24 @@ class ProteinTurnover:
     # graph light series
     # curve fit
     markeropt = dict(color=colors['light'], symbol=symbol, size=2)
-    # specs = dict(mode='lines', name='Light data (degradation)', showlegend=True, connectgaps=True, legendgroup = 'light')
-    specs = dict(mode='lines', name='Light data (degradation)', showlegend=True, connectgaps=True)
+    # specs = dict(mode='lines', name='Light (degradation)', showlegend=True, connectgaps=True, legendgroup = 'light')
+    specs = dict(mode='lines', name='Light (degradation)', showlegend=True, connectgaps=True)
     fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt )
     # data points
     # markeropt = dict(color=colors['light'], symbol=symbol, size=4)
-    # specs = dict(mode='markers', name='Light data (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
+    # specs = dict(mode='markers', name='Light (degradation)', showlegend=False, connectgaps=False, legendgroup = 'light')
     # xs = ['0'] + self.__xvalues 
     # ys = 100*df[[0]+self.__xvalues].mean()
     # fig = self.__add1goTrace(fig, x=xs, y=ys, specs=specs, markeropt=markeropt)
     # graph heavy series
     # curve fit
     markeropt = dict(color=colors['heavy'], symbol=symbol, size=2)
-    # specs = dict(mode='lines', name='Heavy data (synthesis)', showlegend=True, connectgaps=True, legendgroup = 'heavy')
-    specs = dict(mode='lines', name='Heavy data (synthesis)', showlegend=True, connectgaps=True)
+    # specs = dict(mode='lines', name='Heavy (synthesis)', showlegend=True, connectgaps=True, legendgroup = 'heavy')
+    specs = dict(mode='lines', name='Heavy (synthesis)', showlegend=True, connectgaps=True)
     fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt )
     # data points
     # markeropt = dict(color=colors['heavy'], symbol=symbol, size=4)
-    # specs = dict(mode='markers', name='Heavy data (synthesis)', showlegend=False, connectgaps=False, legendgroup = 'heavy')
+    # specs = dict(mode='markers', name='Heavy (synthesis)', showlegend=False, connectgaps=False, legendgroup = 'heavy')
     # fig = self.__add1goTrace(fig, x=xs, y=100-ys, specs=specs, markeropt=markeropt)    
     
     
@@ -626,7 +626,7 @@ class ProteinTurnover:
         }, 
       xaxis_title=labels['x'], 
       yaxis_title=labels['y'],
-      legend_title="Data vs Model",
+      legend_title="Protein type",
       legend_tracegroupgap=4,
       font=dict(
           family=labels['fontfamily'],
