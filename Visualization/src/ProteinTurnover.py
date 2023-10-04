@@ -336,20 +336,29 @@ class ProteinTurnover:
     fig = go.Figure()
     df.apply(self.__singleProteinDatumPlot, fig=fig, axis=1)
     
+    # add horizontal double arrow
+    arrhead, arrsize, arrwidth, arrcolor = (3,1,3,'blue')
+    fig.add_annotation(x=50,y=65,ax=1000,ay=65,xref='x',yref='y',axref='x',ayref='y',text='faster', yanchor="bottom", xanchor="left", showarrow=True,arrowhead=arrhead,arrowsize=arrsize,arrowwidth=arrwidth,arrowcolor=arrcolor)
+    fig.add_annotation(x=50,y=65,ax=9000,ay=65,xref='x',yref='y',axref='x',ayref='y',text='', showarrow=True,arrowhead=arrhead,arrowsize=arrsize,arrowwidth=arrwidth,arrowcolor=arrcolor)
+    fig.add_annotation(x=9500,y=65,ax=8500,ay=65,xref='x',yref='y',axref='x',ayref='y',text='slower turnover', yanchor="bottom", xanchor="right", showarrow=True,arrowhead=arrhead,arrowsize=arrsize,arrowwidth=arrwidth,arrowcolor=arrcolor)
+    # fig.add_hline(y=65, x0=1000, x1=9000, line_width=1, line_dash="dash", line_color="black") 
+    
     fig.update_layout( 
       title={
         'text': 'Protein Half-life rank',
         'x': 0.45,
         'xanchor': 'center'
         }, 
-      xaxis_title='Rank', 
-      yaxis_title='Average half-lives (day)',
+      xaxis_title='Rank of Protein', 
+      yaxis_title='Protein Half-life (d)',
       font=dict(
           family="Garamond",
           size=16,
           color="Black" # "RebeccaPurple"
       )
     )
+    
+
 
     if saveFigOpts['savePlot']:
       options = saveFigOpts.copy() 
@@ -672,7 +681,7 @@ saveplot, showplot = False, False
 savePath = "../media/plots/"
 
 # pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
-# pto.proteinHalflifeChart()
+pto.proteinHalflifeChart()
 
 
 # %%
