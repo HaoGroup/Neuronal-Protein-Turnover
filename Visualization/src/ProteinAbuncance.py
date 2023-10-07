@@ -16,10 +16,11 @@ import re
 
 basename = "ProteinAbundance"
 
-folderpath = os.path.join("..","data",basename)
+folder = os.path.join("..","data",basename)
+if not os.path.exists(folder): os.makedirs(folder)
 # basename = "Neuron_Profile_Abundance_4website.xlsx"
 # proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, basename+".xlsx" ))
-proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, "Neuron_Profile_Abundance_4websiteShortHeader.xlsx" ), header=0, index_col=0) # make sure 'gene' is the first column
+proteinAbundanceTb = pd.read_excel(os.path.join(folder, "Neuron_Profile_Abundance_4websiteShortHeader.xlsx" ), header=0, index_col=0) # make sure 'gene' is the first column
 proteinAbundanceTb.columns = [ x.strip() for x in proteinAbundanceTb.columns ] # in case colheads need trimming
 proteinAbundanceTb.index.name = proteinAbundanceTb.index.name.strip() # in case "gene" needs trimming
 # proteinAbundanceTb.head()
@@ -56,30 +57,6 @@ def txtCleanSubLoc(t):
   res = re.sub(dummystr,'',res) # remove dummystr if still here.
   res = re.sub(r'[\.\s]*$','',res) # remove ending periods. Sometimes two back-to-back periods, might have space between
   return res 
-
-#%%[markdown]
-# 
-# # Normal rows
-# 
-# SUBCELLULAR LOCATION: Golgi apparatus membrane {ECO:0000250|UniProtKB:Q8CF82}; Multi-pass membrane protein {ECO:0000250|UniProtKB:Q8CF82}. Lysosome membrane {ECO:0000250|UniProtKB:Q8K448}; Multi-pass membrane protein {ECO:0000250|UniProtKB:Q8K448}. Late endosome membrane {ECO:0000250|UniProtKB:Q8K448}; Multi-pass membrane protein {ECO:0000250|UniProtKB:Q8K448}. Cell membrane {ECO:0000250|UniProtKB:Q8K448}. Note=Localized at cell membrane under high cholesterol levels. {ECO:0000250|UniProtKB:Q8K448}.
-# 
-# SUBCELLULAR LOCATION: Cytoplasm. Cytoplasm, cytoskeleton. Nucleus. Cell junction, focal adhesion. Note=Associates with the actin cytoskeleton near the adhesion plaques. Enters the nucleus in the presence of HESX1.
-# 
-# # Problem rows 
-# 
-# ABCD1 
-# SUBCELLULAR LOCATION: Peroxisome membrane {ECO:0000269|PubMed:10777694, ECO:0000269|PubMed:16946495, ECO:0000269|PubMed:17609205, ECO:0000269|PubMed:18757502, ECO:0000269|PubMed:29397936}; Multi-pass membrane protein {ECO:0000255}. Mitochondrion membrane {ECO:0000269|PubMed:16946495}; Multi-pass membrane protein. Lysosome membrane {ECO:0000269|PubMed:16946495}; Multi-pass membrane protein. Endoplasmic reticulum membrane {ECO:0000269|PubMed:16946495}; Multi-pass membrane protein.
-# 
-# ABCG1
-# SUBCELLULAR LOCATION: Endoplasmic reticulum membrane {ECO:0000269|PubMed:22042635}; Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Golgi apparatus membrane {ECO:0000269|PubMed:22042635}; Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Cell membrane {ECO:0000269|PubMed:16702602, ECO:0000269|PubMed:24576892}. Note=Predominantly localized in the intracellular compartments mainly associated with the endoplasmic reticulum (ER) and Golgi membranes.
-# try parsing
-# Endoplasmic reticulum membrane {ECO:0000269|PubMed:22042635Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Golgi apparatus membrane {ECO:0000269|PubMed:22042635Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Cell membrane {ECO:0000269|PubMed:16702602, ECO:0000269|PubMed:24576892}. Note=Predominantly localized in the intracellular compartments mainly associated with the endoplasmic reticulum (ER) and Golgi membranes.
-# #
-# ABI2
-# SUBCELLULAR LOCATION: Cytoplasm {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:7590236, ECO:0000269|PubMed:8649853}. Nucleus {ECO:0000269|PubMed:7590236}.; SUBCELLULAR LOCATION: [Isoform 1]: Cell projection, lamellipodium {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:15572692}. Cell projection, filopodium {ECO:0000269|PubMed:11516653}. Cytoplasm, cytoskeleton {ECO:0000269|PubMed:15572692}. Cell junction, adherens junction {ECO:0000269|PubMed:15572692}. Note=Isoform 1 but not isoform 3 is localized to protruding lamellipodia and filopodia tips (PubMed:11516653, PubMed:15572692). Present at nascent adherens junctions, where it clusters adjacent to the tips of F-actin protrusions (PubMed:15572692). {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:15572692}.
-
-# ABLIM2
-# SUBCELLULAR LOCATION: Cytoplasm. Note=In skeletal muscle, sarcomeric or cosarcomeric localization. {ECO:0000250}.
 
 
 #%%

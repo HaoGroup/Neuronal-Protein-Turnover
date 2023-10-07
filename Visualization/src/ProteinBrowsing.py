@@ -16,10 +16,12 @@ import re
 
 basename = "ProteinT12Browsing"
 
-folderpath = os.path.join("..","data",basename)
+folder = os.path.join("..","data",basename)
+if not os.path.exists(folder): os.makedirs(folder)
+
 # basename = "ProteinT12Browsing.xlsx"
 # proteinBrowseTb = pd.read_excel(os.path.join(folderpath, basename+".xlsx" ))
-proteinBrowseTb = pd.read_excel(os.path.join(folderpath, "ProteinT12Browsing_shortHeader.xlsx" ), header=0, index_col=0) # make sure 'rank' is the first column
+proteinBrowseTb = pd.read_excel(os.path.join(folder, "ProteinT12Browsing_shortHeader.xlsx" ), header=0, index_col=0) # make sure 'rank' is the first column
 proteinBrowseTb.columns = [ x.strip() for x in proteinBrowseTb.columns ] # in case colheads need trimming
 proteinBrowseTb.index.name = proteinBrowseTb.index.name.strip() # in case "rank" needs trimming
 # proteinBrowseTb.head()
@@ -103,8 +105,13 @@ def createRankPlot(df) -> None: # From ProteinTurnover class
   )
   
   fig.show()
+  
+  # save html
+  folder = os.path.join( '..', 'media', 'plots', 'htmls', 'proteinRank' )
+  if not os.path.exists(folder): os.makedirs(folder)
+  filepath = os.path.join(folder, "proteinHalflifeRank.html")
   incPlotlyJs = "plotly.min.js"  # False # add cdn plotly js on the html directly to minimize size of each html # symbolic link
-  fig.write_html( "proteinRank.html", include_plotlyjs=incPlotlyJs )
+  fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
   
   return
 

@@ -2,7 +2,7 @@
 import pandas as pd
 import os
 import json
-import re
+# import re
 import warnings
 import plotly.graph_objects as go
 # To export static images from go, need pip install -U kaleido
@@ -328,7 +328,7 @@ class ProteinTurnover:
     res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
     return res
   
-  def proteinHalflifeChart(self, saveFigOpts = dict(savePlot=True, showPlot=True, folder='../media/plots/proteinRank/')) -> None:
+  def proteinHalflifeChart(self, saveFigOpts = dict(savePlot=True, showPlot=True, folder='../media/plots/htmls/proteinRank/')) -> None:
     saveFigOpts=self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     d = self.df_Proteins
     df = d.drop(list(d.filter(regex = '(_all|_pass)')) + ['peptides', 'Protein_Description'] , axis = 1)
@@ -357,10 +357,10 @@ class ProteinTurnover:
           color="Black" # "RebeccaPurple"
       )
     )
-    
-
 
     if saveFigOpts['savePlot']:
+      folder = saveFigOpts['folder']
+      if not os.path.exists(folder): os.makedirs(folder)
       options = saveFigOpts.copy() 
       self.__savePlot(options, fig, "proteinHalflifeRank")
     if saveFigOpts['showPlot']: fig.show()
