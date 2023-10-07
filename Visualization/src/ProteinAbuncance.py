@@ -1,6 +1,5 @@
 #%%
 # import json
-# import re
 # import warnings
 # import plotly.graph_objects as go
 # To export static images from go, need pip install -U kaleido
@@ -11,7 +10,6 @@
 # prepare data from given excel to web display
 
 #%%
-import numpy as np
 import pandas as pd
 import os
 import re
@@ -21,12 +19,14 @@ basename = "ProteinAbundance"
 folderpath = os.path.join("..","data",basename)
 # basename = "Neuron_Profile_Abundance_4website.xlsx"
 # proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, basename+".xlsx" ))
-proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, "Neuron_Profile_Abundance_4websiteShortHeader.xlsx" ))
+proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, "Neuron_Profile_Abundance_4websiteShortHeader.xlsx" ), header=0, index_col=0) # make sure 'gene' is the first column
+proteinAbundanceTb.columns = [ x.strip() for x in proteinAbundanceTb.columns ] # in case colheads need trimming
+proteinAbundanceTb.index.name = proteinAbundanceTb.index.name.strip() # in case "gene" needs trimming
 # proteinAbundanceTb.head()
 # original column names :
-# ['GeneID', 'UniProtID', 'Protein Description', 'Protein Length (#AA)', 'Protein Mass (Da)', 'Subcellular Location ', 'Abundance Level', 'Average Protein Copy Number']
+# ['gene', 'UniProtID', 'Protein Description', 'Protein Length (#AA)', 'Protein Mass (Da)', 'Subcellular Location ', 'Abundance Level', 'Average Protein Copy Number']
 # new column names :
-# ['GeneID', 'UniProtID', 'pDesc', 'pLength', 'pMass', 'subLoc', 'abundanceLevel', 'avgCopyN']
+# ['gene', 'UniProtID', 'pDesc', 'pLength', 'pMass', 'subLoc', 'abundanceLevel', 'avgCopyN']
 
 #%% 
 def txtCleanSubLoc(t):
@@ -46,14 +46,15 @@ def txtCleanSubLoc(t):
   # SUBCELLULAR LOCATION: Nucleus {ECO:0000255|PROSITE-ProRule:PRU00625}.  
   res = re.sub(r'\s*SUBCELLULAR LOCATION:\s*','',res) # beginning phrase 
   res = re.sub(r'\};','',res) # remove any Multi-pass membrane breaks 
-  res = re.sub(r'\}[^\}]*Note=','',res) # remove any Notes 
+  res = re.sub(r'\}[^\}]*Note=','',res) # remove any }***Notes 
+  res = re.sub('Note=','{',res) # if there were still Note= here, make it a start to-be-deleted
   # some cases there is no ending '}', messing up the search.
   dummystr = '{xyxyxy}'
   res += dummystr # add dummystr just in case.
-  res = re.sub(r'\s*\{[^\}]+\}\s*','',res) # remove additional info, including multi-pass info
+  res = re.sub(r'\s*\{[^\}]+\}\s*','',res) # remove additional info, from curly bracket-start to curly bracket-end, including multi-pass info
   res = re.sub(r'\.\s+','; ',res) # replace periods between locations as semi-colons. Not using commas to avoid cvs nuance.
   res = re.sub(dummystr,'',res) # remove dummystr if still here.
-  res = re.sub(r'\.$','',res)   
+  res = re.sub(r'[\.\s]*$','',res) # remove ending periods. Sometimes two back-to-back periods, might have space between
   return res 
 
 #%%[markdown]
@@ -74,8 +75,11 @@ def txtCleanSubLoc(t):
 # try parsing
 # Endoplasmic reticulum membrane {ECO:0000269|PubMed:22042635Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Golgi apparatus membrane {ECO:0000269|PubMed:22042635Multi-pass membrane protein {ECO:0000269|PubMed:22042635}. Cell membrane {ECO:0000269|PubMed:16702602, ECO:0000269|PubMed:24576892}. Note=Predominantly localized in the intracellular compartments mainly associated with the endoplasmic reticulum (ER) and Golgi membranes.
 # #
-# ABCG2 (NO problem)
-# SUBCELLULAR LOCATION: Cell membrane {ECO:0000269|PubMed:15001581, ECO:0000269|PubMed:15769853, ECO:0000269|PubMed:15807535, ECO:0000269|PubMed:18056989, ECO:0000269|PubMed:31003562, ECO:0000269|PubMed:31254042}; Multi-pass membrane protein {ECO:0000255}. Apical cell membrane {ECO:0000269|PubMed:19506252}; Multi-pass membrane protein {ECO:0000255}. Mitochondrion membrane {ECO:0000269|PubMed:23189181}; Multi-pass membrane protein {ECO:0000255}. Note=Enriched in membrane lipid rafts. {ECO:0000269|PubMed:28623970}.
+# ABI2
+# SUBCELLULAR LOCATION: Cytoplasm {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:7590236, ECO:0000269|PubMed:8649853}. Nucleus {ECO:0000269|PubMed:7590236}.; SUBCELLULAR LOCATION: [Isoform 1]: Cell projection, lamellipodium {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:15572692}. Cell projection, filopodium {ECO:0000269|PubMed:11516653}. Cytoplasm, cytoskeleton {ECO:0000269|PubMed:15572692}. Cell junction, adherens junction {ECO:0000269|PubMed:15572692}. Note=Isoform 1 but not isoform 3 is localized to protruding lamellipodia and filopodia tips (PubMed:11516653, PubMed:15572692). Present at nascent adherens junctions, where it clusters adjacent to the tips of F-actin protrusions (PubMed:15572692). {ECO:0000269|PubMed:11516653, ECO:0000269|PubMed:15572692}.
+
+# ABLIM2
+# SUBCELLULAR LOCATION: Cytoplasm. Note=In skeletal muscle, sarcomeric or cosarcomeric localization. {ECO:0000250}.
 
 
 #%%
@@ -86,7 +90,7 @@ proteinAbundanceTb.subLoc = proteinAbundanceTb.subLoc.map(txtCleanSubLoc)
 # output to csv, json, excel
 proteinAbundanceTb.to_csv( os.path.join(folderpath, basename+".csv"))
 proteinAbundanceTb.to_excel( os.path.join(folderpath, basename+".xlsx"))
-proteinAbundanceTb.to_json( os.path.join(folderpath, basename+".json"), orient="records")
+proteinAbundanceTb.reset_index().to_json( os.path.join(folderpath, basename+".json"), orient="records")
 
 # basename = "ProteinT12Browsing"
 
