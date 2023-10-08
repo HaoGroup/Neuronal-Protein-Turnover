@@ -20,7 +20,7 @@ folder = os.path.join("..","data",basename)
 if not os.path.exists(folder): os.makedirs(folder)
 
 # basename = "ProteinT12Browsing.xlsx"
-# proteinBrowseTb = pd.read_excel(os.path.join(folderpath, basename+".xlsx" ))
+# proteinBrowseTb = pd.read_excel(os.path.join(folder, basename+".xlsx" ))
 proteinBrowseTb = pd.read_excel(os.path.join(folder, "ProteinT12Browsing_shortHeader.xlsx" ), header=0, index_col=0) # make sure 'rank' is the first column
 proteinBrowseTb.columns = [ x.strip() for x in proteinBrowseTb.columns ] # in case colheads need trimming
 proteinBrowseTb.index.name = proteinBrowseTb.index.name.strip() # in case "rank" needs trimming
@@ -67,9 +67,9 @@ proteinBrowseTb.subLoc = proteinBrowseTb.subLoc.map(txtCleanSubLoc)
 
 #%%
 # output to csv, json, excel
-proteinBrowseTb.to_csv( os.path.join(folderpath, basename+".csv"))
-proteinBrowseTb.to_excel( os.path.join(folderpath, basename+".xlsx"))
-proteinBrowseTb.reset_index().to_json( os.path.join(folderpath, basename+".json"), orient="records")
+proteinBrowseTb.to_csv( os.path.join(folder, basename+".csv"))
+proteinBrowseTb.to_excel( os.path.join(folder, basename+".xlsx"))
+proteinBrowseTb.reset_index().to_json( os.path.join(folder, basename+".json"), orient="records")
 
 # basename = "ProteinT12Browsing"
 
@@ -91,7 +91,7 @@ def createRankPlot(df) -> None: # From ProteinTurnover class
 
   fig.update_layout( 
     title={
-      'text': 'Protein Half-life rank',
+      'text': 'Protein Half-life vs Rank',
       'x': 0.45,
       'xanchor': 'center'
       }, 

@@ -345,7 +345,7 @@ class ProteinTurnover:
     
     fig.update_layout( 
       title={
-        'text': 'Protein Half-life rank',
+        'text': 'Protein Half-life vs Rank',
         'x': 0.45,
         'xanchor': 'center'
         }, 
