@@ -65,9 +65,9 @@ proteinAbundanceTb.subLoc = proteinAbundanceTb.subLoc.map(txtCleanSubLoc)
 
 #%%
 # output to csv, json, excel
-proteinAbundanceTb.to_csv( os.path.join(folderpath, basename+".csv"))
-proteinAbundanceTb.to_excel( os.path.join(folderpath, basename+".xlsx"))
-proteinAbundanceTb.reset_index().to_json( os.path.join(folderpath, basename+".json"), orient="records")
+proteinAbundanceTb.to_csv( os.path.join(folder, basename+".csv"))
+proteinAbundanceTb.to_excel( os.path.join(folder, basename+".xlsx"))
+proteinAbundanceTb.reset_index().to_json( os.path.join(folder, basename+".json"), orient="records")
 
 # basename = "ProteinT12Browsing"
 
