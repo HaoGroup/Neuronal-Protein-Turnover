@@ -659,19 +659,19 @@ class ProteinTurnover:
   
 
 #%%
-# file = os.path.join(os.getcwd(), "../data/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), "../data/20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), "../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
-# pto = ProteinTurnover(datafiles= dict(raw="../data/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230724.csv", proteins="../data/dfProteins20230724.csv") )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/dfPeptides20230808.csv", proteins="../data/dfProteins20230808.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/ProteinTurnover/dfPeptides20230724.csv", proteins="../data/ProteinTurnover/dfProteins20230724.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/ProteinTurnover/dfPeptides20230808.csv", proteins="../data/ProteinTurnover/dfProteins20230808.csv") )
 
 #%%
 # saveplot, showplot = False, True
