@@ -18,7 +18,8 @@ import numpy as np
 
 #%%
 filepath1 = os.path.join("..","data","ProteinTurnover","dfProteins20230808.csv") # Had to rename 'Gene' to 'gene' for consistency
-tPeptides = pd.read_csv(filepath1, index_col="gene")
+tPeptides = pd.read_csv(filepath1, index_col="Gene")
+tPeptides.index.name = 'gene'
 
 filepath2 = os.path.join("..","data","ProteinT12Browsing","ProteinT12Browsing.csv")
 tBrowsing = pd.read_csv(filepath2, index_col="gene")
@@ -79,4 +80,12 @@ tcombined['UniProtID-100'].value_counts()
 # In essence, there should be 365 less rows...
 # for examples, gene  ESYT1 (uniProtID Q9BSJ8)  H1-4 (uniProtID P10412) 
 
+#%%
+tdups = tcombined.copy()
+tdups.reset_index(inplace=True)
+tdups.set_index(['gene','UniProtID-100'], inplace=True)
+tdupsfiltered = tdups[tdups.index.duplicated()]
+tdupsfiltered.shape # (365, 21)
+tpeptide2chk = tdupsfiltered[['pDesc-001']]
+tpeptide2chk.to_csv('peptideDuplicateGene.csv')
 #%%
