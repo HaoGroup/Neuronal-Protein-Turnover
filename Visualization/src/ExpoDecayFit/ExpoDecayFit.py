@@ -98,6 +98,7 @@ class ExpoDecayFit:
     xvals = ['0']+self.__xvalues
     data = row[xvals].dropna()
     data.index = data.index.astype(int)
+    # data.index = data.index.astype(float)
     x = data.index.values
     y = data.values
     logy=np.log(y.tolist())

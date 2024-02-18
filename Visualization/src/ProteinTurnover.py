@@ -36,6 +36,7 @@ class ProteinTurnover:
     self.__xAxisName = 'Time'
     self.__xUnit = 'day'
     self.__xvalues = ['1', '2', '4', '6']
+    # self.__xvalues = ['0.5', '2', '4', '6']
     # Match with ExpoDecayFit module:
     self.__statsTypes = ('b','t12','r2') # keeping track of three results/statics from exponential fit
     self.__modelTypes = ("CFit",) # use only Curve-fit, 20230713
@@ -67,7 +68,8 @@ class ProteinTurnover:
       df = pd.read_excel(raw) if (raw[-5:] == '.xlsx' or raw[-4:] == '.xls') else pd.read_csv(raw) if (raw[-4:] == '.csv') else None
       
       # clean up column names, avoid dots in names
-      df.columns =  [ str(col) if str(col).isnumeric() else col.replace('.','_') for col in df.columns.values ]
+      # df.columns =  [ str(col) if str(col).isnumeric() else col.replace('.','_') for col in df.columns.values ]
+      df.columns =  [ str(col) if isinstance(col, (int, float)) else col.replace('.','_') for col in df.columns.values ]
       # 20230620 data file no longer has day0 columns. Re-create here:
       if (not '0' in df.columns): df['0'] = 1
       # df['iMN_Day0_Light_Relative_Abundance'] = 1
@@ -664,6 +666,7 @@ class ProteinTurnover:
 # file = os.path.join(os.getcwd(), "../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
+# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/test_Peptide4web.xlsx", peptides=None, proteins=None) ) # with days values not integer
 # pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/ProteinTurnover/dfPeptides20230724.csv", proteins="../data/ProteinTurnover/dfProteins20230724.csv") )
 # pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
