@@ -183,8 +183,8 @@ class ProteinTurnover:
     """
     filename = filename if filename else "result"
     if format=='csv': 
-      self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1).to_csv(os.path.join("../data/",filename+"_peptides.csv"))
-      self.df_Proteins.to_csv(os.path.join("../data/",filename+"_protein.csv"))
+      self.df_Peptides.drop(list(self.df_Peptides.filter(regex = '^\d$')), axis = 1).to_csv(os.path.join(f"..{os.sep}data{os.sep}",filename+"_peptides.csv"))
+      self.df_Proteins.to_csv(os.path.join(f"..{os.sep}data{os.sep}",filename+"_protein.csv"))
       return
     
     # default json, will have protein as key, values will be Gene, description, decay constants, half-lives, rsquared, and peptide list
@@ -196,7 +196,7 @@ class ProteinTurnover:
     
     print(f'resulting results has dim: {df.shape}')
     print(df.head(2))
-    df.to_json( os.path.join("../data/",filename+"_protein.json"), orient="records")
+    df.to_json( os.path.join(f"..{os.sep}data{os.sep}",filename+"_protein.json"), orient="records")
     return
   
   
@@ -327,10 +327,10 @@ class ProteinTurnover:
     res = saveFigOpts.copy()
     res['savePlot'] = res['savePlot'] if ( res.__contains__('savePlot') and isinstance(res['savePlot'], bool) ) else False
     res['showPlot'] = res['showPlot'] if ( res.__contains__('showPlot') and isinstance(res['showPlot'], bool) ) else True
-    res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else './'
+    res['folder'] = res['folder'] if ( res.__contains__('folder') and res['folder'] ) else f'.{os.sep}'
     return res
   
-  def proteinHalflifeChart(self, saveFigOpts = dict(savePlot=True, showPlot=True, folder='../media/plots/htmls/proteinRank/')) -> None:
+  def proteinHalflifeChart(self, saveFigOpts = dict(savePlot=True, showPlot=True, folder=f'..{os.sep}media{os.sep}plots{os.sep}htmls{os.sep}proteinRank{os.sep}')) -> None:
     saveFigOpts=self.__setArgSaveFigOpts(saveFigOpts=saveFigOpts)
     d = self.df_Proteins
     df = d.drop(list(d.filter(regex = '(_all|_pass)')) + ['peptides', 'Protein_Description'] , axis = 1)
@@ -347,7 +347,7 @@ class ProteinTurnover:
     
     fig.update_layout( 
       title={
-        'text': 'Protein Half-life vs Rank',
+        'text': 'Protein Ranking Based on Half-life',
         'x': 0.45,
         'xanchor': 'center'
         }, 
@@ -485,7 +485,7 @@ class ProteinTurnover:
     
     if saveFigOpts['savePlot']:
       options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/peptideLevel/'
+      options['folder'] += f'htmls{os.sep}peptideLevel{os.sep}'
       self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename +"-peptides")
     if saveFigOpts['showPlot']: fig.show()
 
@@ -651,7 +651,7 @@ class ProteinTurnover:
     
     if saveFigOpts['savePlot']: 
       options = saveFigOpts.copy() 
-      options['folder'] += 'htmls/proteinLevel/'
+      options['folder'] += f'htmls{os.sep}proteinLevel{os.sep}'
       self.__savePlot(options, fig, "RelAbundance_Gene-"+ proteingenename)
     if saveFigOpts['showPlot']: fig.show()
     
@@ -661,30 +661,30 @@ class ProteinTurnover:
   
 
 #%%
-# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), "../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
+# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
 # new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
 
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/test_Peptide4web.xlsx", peptides=None, proteins=None) ) # with days values not integer
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/ProteinTurnover/dfPeptides20230724.csv", proteins="../data/ProteinTurnover/dfProteins20230724.csv") )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/data20230801/4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw="../data/ProteinTurnover/20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides="../data/ProteinTurnover/dfPeptides20230808.csv", proteins="../data/ProteinTurnover/dfProteins20230808.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}test_Peptide4web.xlsx", peptides=None, proteins=None) ) # with days values not integer
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230724.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230724.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}4_iCN_DDA.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230808.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230808.csv") )
 
 #%%
 # saveplot, showplot = False, True
 # saveplot, showplot = True, False
 # saveplot, showplot = True, True
 saveplot, showplot = False, False
-savePath = "../media/plots/"
+savePath = f"..{os.sep}media{os.sep}plots{os.sep}"
 
 # pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
-pto.proteinHalflifeChart()
+# pto.proteinHalflifeChart()
 
 
 # %%
