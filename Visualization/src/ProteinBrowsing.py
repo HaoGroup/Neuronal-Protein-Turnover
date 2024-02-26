@@ -48,6 +48,7 @@ def txtCleanSubLoc(t):
   # SUBCELLULAR LOCATION: Cytoplasm. Cytoplasm, cytoskeleton. Nucleus. Cell junction, focal adhesion. Note=Associates with the actin cytoskeleton near the adhesion plaques. Enters the nucleus in the presence of HESX1.
   # SUBCELLULAR LOCATION: Nucleus {ECO:0000255|PROSITE-ProRule:PRU00625}.  
   res = re.sub(r'\s*SUBCELLULAR LOCATION:\s*','',res) # beginning phrase 
+  res = re.sub(r"\s?\[GO:\d{7}\]", "", res) # remove any " [GO:1234567]" in the new 20240207 version of Browsing excel file
   res = re.sub(r'\};','',res) # remove any Multi-pass membrane breaks 
   res = re.sub(r'\}[^\}]*Note=','',res) # remove any }***Notes 
   res = re.sub('Note=','{',res) # if there were still Note= here, make it a start to-be-deleted
@@ -88,10 +89,9 @@ def createRankPlot(df) -> None: # From ProteinTurnover class
   fig.add_annotation(x=50,y=65,ax=9500,ay=65,xref='x',yref='y',axref='x',ayref='y',text='', showarrow=True,arrowhead=arrhead,arrowsize=arrsize,arrowwidth=arrwidth,arrowcolor=arrcolor)
   fig.add_annotation(x=10000,y=65,ax=8500,ay=65,xref='x',yref='y',axref='x',ayref='y',text='slower turnover', yanchor="bottom", xanchor="right", showarrow=True,arrowhead=arrhead,arrowsize=arrsize,arrowwidth=arrwidth,arrowcolor=arrcolor)
   # fig.add_hline(y=65, x0=1000, x1=9000, line_width=1, line_dash="dash", line_color="black") 
-
   fig.update_layout( 
     title={
-      'text': 'Protein Half-life vs Rank',
+      'text': 'Protein Ranking Based on Half-life',
       'x': 0.45,
       'xanchor': 'center'
       }, 
@@ -103,6 +103,7 @@ def createRankPlot(df) -> None: # From ProteinTurnover class
         color="Black" # "RebeccaPurple"
     )
   )
+
   
   fig.show()
   
