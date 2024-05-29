@@ -18,6 +18,7 @@ class ExpoDecayFit:
   Exponential Decay Fit 
   """
   # def __init__(self, row, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
+  # def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6','8'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
   def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
     """_summary_
 
@@ -135,7 +136,12 @@ class ExpoDecayFit:
       thismodel = 'CFit'
       # yvals = y.tolist() # or list(y) # y is a pd.core.series.Series
       # xvals = x[self.__xAxisName].tolist() # change from pd.Dataframe to pd.Series to list
-      popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
+      try:
+        popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
+      except Exception as e:
+        print(f"Caught an exception: {e}")
+        raise  
+      # popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
       # popt, pcov = curve_fit(lambda t, b: np.exp(-b * t), x, y) # popt-optimized parameters
       res_b = popt[0]
       # save result statistics

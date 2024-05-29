@@ -35,6 +35,7 @@ class ProteinTurnover:
     self.__yUnit = '%'
     self.__xAxisName = 'Time'
     self.__xUnit = 'day'
+    # self.__xvalues = ['1', '2', '4', '6', '8']
     self.__xvalues = ['1', '2', '4', '6']
     # self.__xvalues = ['0.5', '2', '4', '6']
     # Match with ExpoDecayFit module:
@@ -673,8 +674,9 @@ class ProteinTurnover:
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230808.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230808.csv") )
+pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep2.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230808.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230808.csv") )
 
 #%%
 # saveplot, showplot = False, True
