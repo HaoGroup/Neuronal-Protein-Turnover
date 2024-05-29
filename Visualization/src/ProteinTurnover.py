@@ -679,7 +679,7 @@ class ProteinTurnover:
 #
 # 2024-05-25 file, with time points 0,1,2,4,6,8, use the first line for raw data, or two line to use the processed result (in csv instead of xlsx) 
 pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_peptides.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_protein.csv") )
+# pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_peptides.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_protein.csv") )
 
 #%%
 # saveplot, showplot = False, True
