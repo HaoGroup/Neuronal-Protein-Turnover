@@ -18,8 +18,8 @@ class ExpoDecayFit:
   Exponential Decay Fit 
   """
   # def __init__(self, row, xAxisName = 'Time', modelTypes=('LnLM1', 'LnLM2', 'CFit'), statsTypes=('b','t12','r2')) -> None:
-  # def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6','8'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
-  def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6'] , modelTypes=('CFit',), statsTypes=('b','t12','r2')) -> None:
+  def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6','8'] , modelTypes=('CFit',), statsTypes=('b','t12','r2'), filter = dict()) -> None:
+  # def __init__(self, row, xAxisName = 'Time', xvalues = ['1','2','4','6'] , modelTypes=('CFit',), statsTypes=('b','t12','r2'), filter = dict() ) -> None:
     """_summary_
 
     Args:
@@ -28,6 +28,7 @@ class ExpoDecayFit:
         xAxisName (str): x-axis name
         modelTypes (list/tuple): list of model types to be deployed
         statsTypes (list/tuple): list of statistical parameters to be recorded. Defaults are b: decay constant, t12: half-life, and r2: r-squared value of fit
+        filter (dict): dictionary of filter property, ratio-tolerence, absolute-tolerence, etc. See __setFilter() function
     """
     # self.__indexVals = tuple( df.index.values )
     # self.__indexX = pd.Series( self.__indexVals , name=self.__indexName) # 0,1,2,4,6
@@ -42,10 +43,11 @@ class ExpoDecayFit:
     # self.__modelPolyFit = None # numpy polyfit (polynomial fit, like linear regression) 
     # self.__modelTypes = ('LnLM1', 'LnLM2', 'CFit', 'PolyFit')
     self.__modelTypes = modelTypes
-    # self.modelType = 'LnLM1' # current selected // default
+    # self.modelType = 'CFit' # current selected // default
     self.__statsTypes = statsTypes
     # self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=pd.MultiIndex.from_product([self.__wtypes, self.__modelTypes], names=['wtype','modeltype'])) # Dataframe, with two-level column headers ['light'/'heavy', modeltype]
     self.modelsummary = pd.DataFrame(index = pd.Series( self.__statsTypes , name='stats'), columns=self.__modelTypes) # Dataframe, column headers modeltype. For light series only
+    self.__filter = self.__setFilter(filter)
     
     # moved y_predicted outside of module now as it's quite straight foward
     # self.startx = 0
@@ -65,6 +67,35 @@ class ExpoDecayFit:
   
   # Curve fitting function # for Scipy curve_fitting
   def __expDecayFcn(self, x, lambd): return np.exp(-lambd * x)
+  
+  def __setFilter(self, filter):
+    """
+    require (1) last value * rtol > next value
+    and-or
+    require (2) last value + atol > next value 
+    type: monotone
+    Args:
+        filter (dict): {'type': 'monotone', 'rtol':1.2, 'atol':0.1, 'rel-abs-and-or' : 'or' }
+    """
+    res = {'type': 'monotone', 'rtol':1.2, 'atol':0.15, 'rel-abs-and-or' : 'or' } # default
+    for key in res.keys():
+      res[key] = filter(key) if (filter.__contains__(key) and filter(key)) else res[key]
+    return res
+  
+  def __filterCheck(self, y):
+    """
+    check if y (list) satisfy the filter condition
+    Args:
+        y (list): y values in the light series, without NAs
+    """
+    res = True
+    for i in range(len(y)-2): # ignore first one (always start from y=1), and no need to check last one
+      # assume type = monotone
+      cond1 = self.__filter['rtol']*y[i+1] > y[i+2] 
+      cond2 = self.__filter['atol']+y[i+1] > y[i+2] 
+      res = res and cond1 and cond2 if self.__filter['rel-abs-and-or']=='and' else res and (cond1 or cond2) # default 'or'
+      if not res: return False
+    return res
 
   # def __setArgLabels(self, labels=dict(x=None, y=None, title=None) ):
   #   """
@@ -88,7 +119,6 @@ class ExpoDecayFit:
         row (Pandas Series): a row of data, from peptide typically. 
     return: None
     """
-
     
     # Try scipy curve_fit:
     # from scipy.optimize import curve_fit
@@ -134,14 +164,16 @@ class ExpoDecayFit:
 
     if (model=='CFit' or model=='all'):  # Scipy CurveFit
       thismodel = 'CFit'
+      # use filter to avoid max iter limitation. Can also apply to other models other than 'CFit' if needed.
+      if not self.__filterCheck(y): return
       # yvals = y.tolist() # or list(y) # y is a pd.core.series.Series
       # xvals = x[self.__xAxisName].tolist() # change from pd.Dataframe to pd.Series to list
-      try:
-        popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
-      except Exception as e:
-        print(f"Caught an exception: {e}")
-        raise  
-      # popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
+      # try:
+      #   popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
+      # except Exception as e:
+      #   print(f"Caught an exception: {e}")
+      #   raise  
+      popt, pcov = curve_fit(self.__expDecayFcn, x.tolist(), y.tolist())
       # popt, pcov = curve_fit(lambda t, b: np.exp(-b * t), x, y) # popt-optimized parameters
       res_b = popt[0]
       # save result statistics

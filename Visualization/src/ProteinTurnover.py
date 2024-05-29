@@ -35,8 +35,8 @@ class ProteinTurnover:
     self.__yUnit = '%'
     self.__xAxisName = 'Time'
     self.__xUnit = 'day'
-    # self.__xvalues = ['1', '2', '4', '6', '8']
-    self.__xvalues = ['1', '2', '4', '6']
+    self.__xvalues = ['1', '2', '4', '6', '8']
+    # self.__xvalues = ['1', '2', '4', '6']
     # self.__xvalues = ['0.5', '2', '4', '6']
     # Match with ExpoDecayFit module:
     self.__statsTypes = ('b','t12','r2') # keeping track of three results/statics from exponential fit
@@ -674,9 +674,12 @@ class ProteinTurnover:
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep2.xlsx", peptides=None, proteins=None) )
+# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
 # pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230808.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230808.csv") )
+#
+# 2024-05-25 file, with time points 0,1,2,4,6,8, use the first line for raw data, or two line to use the processed result (in csv instead of xlsx) 
+pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep.xlsx", peptides=None, proteins=None) )
+pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_peptides.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}df20240529_protein.csv") )
 
 #%%
 # saveplot, showplot = False, True
