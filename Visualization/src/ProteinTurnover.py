@@ -662,20 +662,35 @@ class ProteinTurnover:
   
 
 #%%
-# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}iMN_Peptide_Dataset.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx") # assuming cwd is .../Visualization/src/ folder
-# file = os.path.join(os.getcwd(), f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx") # assuming cwd is .../Visualization/src/ folder
-# new file 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
+# Examples to use the script:
+#
+# One can Load an xlsx file with the proper (raw) data structure to execute.
+rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep.xlsx"
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}iMN_Peptide_Dataset.xlsx"  
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230522_dSILAC_Turnover_LightRelativeAbundances.xlsx"  
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx"  
+# # new rawfile 06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}test_Peptide4web.xlsx", peptides=None, proteins=None  # with days values not integer
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}2_iMN_4Fraction.xlsx", peptides=None, proteins=None
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}4_iCN_DDA.xlsx", peptides=None, proteins=None
+# rawfile = f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None
 
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}test_Peptide4web.xlsx", peptides=None, proteins=None) ) # with days values not integer
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}06202023_FinalReport_dSILAC_iMN_MultiTimePoint.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230724.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230724.csv") )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}1_iMN_alldata_forwebsite.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}2_iMN_4Fraction.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}3_iCN_DIAfractionate.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}data20230801{os.sep}4_iCN_DDA.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}20230802_Peptide4web.xlsx", peptides=None, proteins=None) )
-# pto = ProteinTurnover(datafiles= dict(raw=None, peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230808.csv", proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230808.csv") )
+peptidefile = None
+proteinfile = None
+
+datafiles = dict( raw=rawfile , peptides = peptidefile , proteins = proteinfile )
+pto = ProteinTurnover(datafiles)
+
+# OR if already done, load the peptide and protein files directly.
+rawfile = None 
+peptides=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfPeptides20230724.csv"
+proteins=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dfProteins20230724.csv"
+datafiles = dict( raw=rawfile , peptides = peptidefile , proteins = proteinfile )
+pto = ProteinTurnover(datafiles)
+
 #
 # 2024-05-25 file, with time points 0,1,2,4,6,8, use the first line for raw data, or two line to use the processed result (in csv instead of xlsx) 
 pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnover{os.sep}dSILAC_TotalProteome_KO_PGRN_Rep.xlsx", peptides=None, proteins=None) )
@@ -687,6 +702,7 @@ pto = ProteinTurnover(datafiles= dict(raw=f"..{os.sep}data{os.sep}ProteinTurnove
 # saveplot, showplot = True, True
 saveplot, showplot = False, False
 savePath = f"..{os.sep}media{os.sep}plots{os.sep}"
+if not os.path.exists(savePath): os.makedirs(savePath)
 
 # pto.abundancePlotPgAll( saveFigOpts = dict(savePlot=saveplot, showPlot=showplot, folder=savePath) )
 # pto.proteinHalflifeChart()

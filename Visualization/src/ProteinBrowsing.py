@@ -16,12 +16,12 @@ import re
 
 basename = "ProteinT12Browsing"
 
-folder = os.path.join("..","data",basename)
+folder = f"..{os.sep}data{os.sep}{basename}"
 if not os.path.exists(folder): os.makedirs(folder)
 
-# basename = "ProteinT12Browsing.xlsx"
-# proteinBrowseTb = pd.read_excel(os.path.join(folder, basename+".xlsx" ))
-proteinBrowseTb = pd.read_excel(os.path.join(folder, "ProteinT12Browsing_shortHeader.xlsx" ), header=0, index_col=0) # make sure 'rank' is the first column
+# filename = "ProteinT12Browsing_shortHeader.xlsx"
+filename = "20250210_Motor_Cortical_NeuronTurnover.xlsx"
+proteinBrowseTb = pd.read_excel( f"{folder}{os.sep}{filename}", header=0, index_col=0) # make sure 'rank' is the first column
 proteinBrowseTb.columns = [ x.strip() for x in proteinBrowseTb.columns ] # in case colheads need trimming
 proteinBrowseTb.index.name = proteinBrowseTb.index.name.strip() # in case "rank" needs trimming
 # proteinBrowseTb.head()
@@ -68,9 +68,9 @@ proteinBrowseTb.subLoc = proteinBrowseTb.subLoc.map(txtCleanSubLoc)
 
 #%%
 # output to csv, json, excel
-proteinBrowseTb.to_csv( os.path.join(folder, basename+".csv"))
-proteinBrowseTb.to_excel( os.path.join(folder, basename+".xlsx"))
-proteinBrowseTb.reset_index().to_json( os.path.join(folder, basename+".json"), orient="records")
+proteinBrowseTb.to_csv( f"{folder}{basename}.csv" )
+proteinBrowseTb.to_excel( f"{folder}{basename}.xlsx" )
+proteinBrowseTb.reset_index().to_json( f"{folder}{basename}.json", orient="records" )
 
 # basename = "ProteinT12Browsing"
 
@@ -108,9 +108,9 @@ def createRankPlot(df) -> None: # From ProteinTurnover class
   fig.show()
   
   # save html
-  folder = os.path.join( '..', 'media', 'plots', 'htmls', 'proteinRank' )
+  folder = f"..{os.sep}media{os.sep}plots{os.sep}htmls{os.sep}proteinRank" 
   if not os.path.exists(folder): os.makedirs(folder)
-  filepath = os.path.join(folder, "proteinHalflifeRank.html")
+  filepath = f"{folder}{os.sep}proteinHalflifeRank.html" 
   incPlotlyJs = "plotly.min.js"  # False # add cdn plotly js on the html directly to minimize size of each html # symbolic link
   fig.write_html( filepath, include_plotlyjs=incPlotlyJs )
   
@@ -145,11 +145,12 @@ def add1goTrace(fig, x, y, specs=dict(), lineopt=dict(), markeropt=dict()): # Fr
   showlegend = specs['showlegend'] if ( specs.__contains__('showlegend') and isinstance(specs['showlegend'], bool) ) else False
   legendgroup = specs['legendgroup'] if (specs.__contains__('legendgroup') and specs['legendgroup']) else specs['name']
   
+  yval = [round(num, 2) for num in y] # round to 2 decimals for chart graph display
   # if ( (not yerroropt['array'] is None) and yerroropt['visible']):
   #   fig.add_trace(go.Scatter( mode=mode, x=x, y=y, error_y=yerroropt, showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
   # else: # add more conditions/scenarios here if needed
   #   fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
-  fig.add_trace(go.Scatter( mode=mode, x=x, y=y,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
+  fig.add_trace(go.Scatter( mode=mode, x=x, y=yval,showlegend=showlegend, legendgroup=legendgroup, name=name, connectgaps=connectgaps, line=lineopt, marker=markeropt))
     
   # if showlegend: fig.update_layout( showlegend=showlegend, legend=legendOpts )
   return fig

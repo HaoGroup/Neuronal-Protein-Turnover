@@ -16,11 +16,13 @@ import re
 
 basename = "ProteinAbundance"
 
-folder = os.path.join("..","data",basename)
+folder = f"..{os.sep}data{os.sep}{basename}"
 if not os.path.exists(folder): os.makedirs(folder)
-# basename = "Neuron_Profile_Abundance_4website.xlsx"
-# proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, basename+".xlsx" ))
-proteinAbundanceTb = pd.read_excel(os.path.join(folder, "Neuron_Profile_Abundance_4websiteShortHeader.xlsx" ), header=0, index_col=0) # make sure 'gene' is the first column
+
+filename = "Neuron_Profile_Abundance_4websiteShortHeader.xlsx"
+# filename = "Neuron_Profile_Abundance_4website.xlsx"
+# proteinAbundanceTb = pd.read_excel(os.path.join(folderpath, filename+".xlsx" ))
+proteinAbundanceTb = pd.read_excel( f"{folder}{os.sep}{filename}" , header=0, index_col=0) # make sure 'gene' is the first column
 proteinAbundanceTb.columns = [ x.strip() for x in proteinAbundanceTb.columns ] # in case colheads need trimming
 proteinAbundanceTb.index.name = proteinAbundanceTb.index.name.strip() # in case "gene" needs trimming
 # proteinAbundanceTb.head()
@@ -65,9 +67,9 @@ proteinAbundanceTb.subLoc = proteinAbundanceTb.subLoc.map(txtCleanSubLoc)
 
 #%%
 # output to csv, json, excel
-proteinAbundanceTb.to_csv( os.path.join(folder, basename+".csv"))
-proteinAbundanceTb.to_excel( os.path.join(folder, basename+".xlsx"))
-proteinAbundanceTb.reset_index().to_json( os.path.join(folder, basename+".json"), orient="records")
+proteinAbundanceTb.to_csv( f"{folder}{basename}.csv" )
+proteinAbundanceTb.to_excel( f"{folder}{basename}.xlsx" )
+proteinAbundanceTb.reset_index().to_json( f"{folder}{basename}.json", orient="records" )
 
 # basename = "ProteinT12Browsing"
 
